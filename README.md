@@ -1,0 +1,1 @@
+An online platform built using React, Django and Postgresql for Doctor's appointment, Medical test appointments and purchasing medicines online.
