@@ -6,6 +6,8 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('__all__')
+        # If want only few fields isntead of all then define it as follows:
+        # fields = ['email', 'username', 'password', 'token']
 
     first_name = serializers.CharField(max_length=50)
     last_name = serializers.CharField(max_length=50)

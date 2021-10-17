@@ -6,9 +6,12 @@ from .models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from rest_framework.decorators import api_view
+from rest_framework.permissions import IsAuthenticated
 
-@api_view(['POST'])
 @csrf_exempt
+@api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# #Apply this where authentication is required.Import IsAuthenticated before use
 def signup(request):
     serializer = UserSerializer(data=request.data)
     if serializer.is_valid():
