@@ -1,34 +1,75 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import UserSerializer
+from .serializers import RegistrationSerializer, LoginSerializer
 from .models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from rest_framework.decorators import api_view
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes, renderer_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from .renderers import UserJSONRenderer
+from django.contrib.auth import authenticate
+import json
 
 @csrf_exempt
 @api_view(['POST'])
-# @permission_classes([IsAuthenticated])
+@renderer_classes([UserJSONRenderer])
+@permission_classes([AllowAny])
 # #Apply this where authentication is required.Import IsAuthenticated before use
 def signup(request):
-    serializer = UserSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
-    else:
-        return Response({"status": "error", "data": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    user = request.data.get('user', {})
+    print(user)
+    # The create serializer, validate serializer, save serializer pattern is common in all view in django rest framework
+    serializer = RegistrationSerializer(data=user)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
 
-    """
-    Request body format
-    {
-        "first_name": "Aman",
-        "last_name": "Saurabh",
-        "email": "aaman423@gmail.com",
-        "password": "123456",
-        "country_code": "+91",
-        "contact_num": 7320865821,
-        "usertype": "USER"
-    }
-    """
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    response = {}
+    try:
+        usertype = request.user.usertype
+        # Here we are not using it but we can use it for URLs which have permission for any specific type of use only.
+
+        email = request.data.get('email')
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+
+        user = authenticate(username=email, password=old_password)
+
+        if user is None:
+            raise Exception(
+                'User with given email and password not found.'
+            )
+
+        formatted_data = {"email": email, "password": new_password}
+        serializer = RegistrationSerializer(user, data=formatted_data, partial=True)
+        # If no user was found matching this email/password combination then
+        # `authenticate` will return `None`. Raise an exception in this case.
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        response['msg'] = "Password changed"
+        return Response(response, status=status.HTTP_202_ACCEPTED)
+    except Exception as err:
+        # print(type(err))
+        response['error'] = err.args[0]
+        return Response(response, status=status.HTTP_404_NOT_FOUND)
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login(request):
+    user = request.data
+
+    # Notice here that we do not call `serializer.save()` like we did for
+    # the registration endpoint. This is because we don't  have
+    # anything to save. Instead, the `validate` method on our serializer
+    # handles everything we need.
+    serializer = LoginSerializer(data=user)
+    serializer.is_valid(raise_exception=True)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)

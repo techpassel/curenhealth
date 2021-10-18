@@ -90,6 +90,8 @@ DATABASES = {
     }
 }
 
+# Tell Django about the custom `User` model we created. The string `auth_app.User` tells Django
+# we are referring to the `User` model in the `auth_app` module.
 AUTH_USER_MODEL = 'auth_app.User'
 
 # Password validation
@@ -134,3 +136,9 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'auth_app.exceptions.core_exception_handler',
+    'NON_FIELD_ERRORS_KEY': 'error',
+    'DEFAULT_AUTHENTICATION_CLASSES': ('auth_app.authentication.JWTAuthentication', ),
+}
