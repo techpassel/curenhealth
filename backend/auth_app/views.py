@@ -1,3 +1,4 @@
+from django.core.checks.messages import Error
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,6 +9,7 @@ from django.views.decorators.http import require_POST
 from rest_framework.decorators import api_view, permission_classes, renderer_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .renderers import UserJSONRenderer
+from django.db.utils import IntegrityError
 from django.contrib.auth import authenticate
 import json
 
@@ -17,21 +19,27 @@ import json
 @permission_classes([AllowAny])
 # #Apply this where authentication is required.Import IsAuthenticated before use
 def signup(request):
-    user = request.data.get('user', {})
-    print(user)
-    # The create serializer, validate serializer, save serializer pattern is common in all view in django rest framework
-    serializer = RegistrationSerializer(data=user)
-    serializer.is_valid(raise_exception=True)
-    serializer.save()
-
-    return Response(serializer.data, status=status.HTTP_201_CREATED)
-
+    try:
+        user = request.data.get('user', {})
+        # The create serializer, validate serializer, save serializer pattern is common in all view in django rest framework
+        serializer = RegistrationSerializer(data=user)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    except IntegrityError as err:      
+        err = err.args[0].split("DETAIL:  Key")
+        err = ((err[1] if len(err) > 1 else err[0]).strip())
+        return Response(err, status=status.HTTP_406_NOT_ACCEPTABLE)
+    except :
+        return Response("Some error occured", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def change_password(request):
     response = {}
     try:
+        # Important for format
         usertype = request.user.usertype
         # Here we are not using it but we can use it for URLs which have permission for any specific type of use only.
 
@@ -62,6 +70,7 @@ def change_password(request):
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@renderer_classes([UserJSONRenderer])
 def login(request):
     user = request.data
 

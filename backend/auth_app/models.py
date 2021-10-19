@@ -30,7 +30,8 @@ class UserType(ChoiceEnum):
     ADMIN = 'admin'
     ADMIN_STAFF = 'admin_staff'
     ADMIN_PHARMACY_STAFF = 'admin_pharmacy_staff'
-
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 class UserManager(BaseUserManager):
     """
