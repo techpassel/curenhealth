@@ -13,9 +13,9 @@ class RegistrationSerializer(serializers.ModelSerializer):
         write_only=True
     )
 
+    email = serializers.EmailField(max_length=256)
     first_name = serializers.CharField(max_length=50)
     last_name = serializers.CharField(max_length=50)
-    email = serializers.EmailField(max_length=256)
     country_code = serializers.CharField(max_length=11, required=False)
     phone = serializers.IntegerField()
     usertype = EnumChoiceField(UserType)
@@ -58,7 +58,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.ModelSerializer):
-    email = serializers.CharField(max_length=255)
+    email = serializers.EmailField(max_length=255)
     password = serializers.CharField(max_length=128, write_only=True)
     first_name = serializers.CharField(max_length=50, required=False)
     last_name = serializers.CharField(max_length=50, required=False)

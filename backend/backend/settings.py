@@ -42,8 +42,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'enumchoicefield',
     'auth_app',
-    'user_app'
+    'user_app',
+    'doctor_app',
+    'hospital_app'
 ]
 
 MIDDLEWARE = [

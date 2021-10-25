@@ -23,15 +23,15 @@ class UserType(ChoiceEnum):
     USER_STAFF = 'user_staff'
     DOCTOR = 'doctor'
     DOCTOR_STAFF = 'doctor_staff'
-    HOSPITAL = 'hospital'
+    HOSPITAL_ADMIN = 'hospital_admin'
     HOSPITAL_STAFF = 'hospital_staff'
-    PATHLAB = 'pathlab'
+    PATHLAB_ADMIN = 'pathlab_admin'
     PATHLAB_STAFF = 'pathlab_staff'
-    ADMIN = 'admin'
-    ADMIN_STAFF = 'admin_staff'
-    ADMIN_PHARMACY_STAFF = 'admin_pharmacy_staff'
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    SUPERADMIN = 'superadmin'
+    SUPERADMIN_STAFF = 'superadmin_staff'
+    SUPERADMIN_PHARMACY_STAFF = 'superadmin_pharmacy_staff'
+    # def __init__(self, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
 
 class UserManager(BaseUserManager):
     """
@@ -56,7 +56,7 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, first_name, last_name, phone, password, country_code="+91",
-                         usertype=UserType.ADMIN):
+                         usertype=UserType.SUPERADMIN):
 
         user = self.create_user(email, first_name, last_name, phone, password, country_code, usertype)
         return user
