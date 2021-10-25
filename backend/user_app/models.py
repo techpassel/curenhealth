@@ -109,7 +109,7 @@ class Communication(TimeStampMixin):
     
 class CommunicationMute(TimeStampMixin):
     communication = models.ForeignKey(Communication, on_delete=models.CASCADE)
-    muted_to = models.ForeignKey(User, on_delete=models.CASCADE, related_name="communication_muted_to")
+    muted_for = models.ForeignKey(User, on_delete=models.CASCADE, related_name="communication_muted_for")
     muted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="communication_muted_by")
 
 class CommunicationShare(TimeStampMixin):
