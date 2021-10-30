@@ -1,4 +1,3 @@
-from datetime import date
 from django.db import models
 from auth_app.models import TimeStampMixin, User
 from hospital_app.models import Hospital, Weekday, SlotPeriod, Address
@@ -101,4 +100,4 @@ class ClientStaffSecondaryRoles(TimeStampMixin):
     secondary_role = EnumChoiceField(ClientStaffRoles)
     doctor_id = models.ForeignKey(Doctor, on_delete=models.PROTECT, null=True, blank=True, related_name="cs_secondary_role_doctor")
     hospital_id = models.ForeignKey(Hospital, on_delete=models.PROTECT, null=True, blank=True, related_name="cs_secondary_role_hospital")
-    responsibilities = ArrayField(EnumChoiceField(ClientStaffPermissions))
+    permissons = ArrayField(EnumChoiceField(ClientStaffPermissions))

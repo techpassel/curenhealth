@@ -6,18 +6,36 @@ from enumchoicefield import ChoiceEnum, EnumChoiceField
 from django.contrib.postgres.fields import ArrayField
 
 # Create your models here.
+class SubscriptionTypes(ChoiceEnum):
+    GENERAL = 'general'
+    PREMIUM = 'premium'
+    GOLD = 'gold'
+
+# We will have to manually create different schemes for different subscriptions and different validity
+class SubscriptionSchemes(TimeStampMixin):
+    subscription_type = EnumChoiceField(SubscriptionTypes)
+    days = models.PositiveIntegerField()
+    charges = models.PositiveIntegerField()
+
 class UserDetails(models.Model):
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
         primary_key=True,
-    )
+    ),
     dob = models.DateField()
     height = models.CharField(max_length=10)
     weight = models.FloatField()
     blood_group = models.CharField(max_length=10)
     image = models.TextField()
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True)
+
+class UserSubscriptions(TimeStampMixin):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    subscription = models.ForeignKey(SubscriptionSchemes, on_delete=models.SET_NULL, null=True)
+    valid_from = models.DateField()
+    valid_till = models.DateField()
+    active = models.BooleanField(default=True)
 
 class HealthConditions(TimeStampMixin):
     user = models.ForeignKey(
@@ -134,6 +152,47 @@ class Feedback(TimeStampMixin):
     from_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     type = EnumChoiceField(FeedbackTypes)
     reference_id = models.UUIDField(primary_key=False)
+    # Here we have used UUIDField since it can be aything like Appointment_id, Doctor_id, Communication_id etc
     overall_rating = models.FloatField()
     subtype_ratings = models.JSONField()
-    # subtype_ratings will have following fields - rating,remark 
+    # subtype_ratings will have following fields - rating, remark 
+
+class OfferOn(ChoiceEnum):
+    IN_HOUSE_CONSULTATION = 'in_house_consultation'
+    ONLINE_CONSULTATION = 'online_consultation'
+    GENERAL_SUBSCRIPTION = 'general_subscription'
+    PREMIUM_SUBSCRIPTION = 'premium_subscription'
+    GOLD_SUBSCRIPTION = 'gold_subscription'
+    MEDICINE = 'medicine'
+    CLIENT_JOINING = 'client_joining'
+    CLIENT_MEMBERSHIP_RENEWAL = 'client_membership_renewal'
+    ALL = 'all'
+    SPECIFIC = 'specific'
+
+class OfferFor(ChoiceEnum):
+    GENERAL_CUSTOMER = 'general_customer'
+    PREMIUM_CUSTOMER = 'premium_customer'
+    GOLD_CUSTOMER = 'gold_customer'
+    DOCTOR = 'doctor'
+    HOSPITAL = 'hospital'
+    PATHLAB = 'pathlab'
+    ADMIN_STAFF = 'admin_staff'
+    ALL = 'all'
+    SPECIFIC = 'specific'
+
+class DiscountType(ChoiceEnum):
+    IN_RUPEE = "in_rupee"
+    IN_PERCENTAGE = "in_percentage"
+
+class Coupon(TimeStampMixin):
+    coupon_code = models.CharField(max_length=50)
+    offer_on = ArrayField(EnumChoiceField(OfferOn))
+    offer_for = ArrayField(EnumChoiceField(OfferFor))
+    discount = models.PositiveIntegerField()
+    discount_type = EnumChoiceField(DiscountType)
+    minimun_spent_amount = models.PositiveIntegerField()
+    specific_users = models.ManyToManyField(User, related_name="assigned_users")
+    # We will use this field if we want to create coupon for some specific user 
+    # like in compensastion for some mistake or as reward for some good work or achievement etc.
+    valid_till = models.DateTimeField()
+    

@@ -68,6 +68,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
 
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
+    user_name = models.CharField(max_length=100)
     email = models.EmailField(db_index=True, unique=True)
     country_code = models.CharField(max_length=11)
     phone = models.BigIntegerField()
