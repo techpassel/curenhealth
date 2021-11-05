@@ -3,9 +3,8 @@ from django.db.models.deletion import SET_NULL
 from enumchoicefield import ChoiceEnum, EnumChoiceField
 from auth_app.models import TimeStampMixin, User
 from django.contrib.postgres.fields import ArrayField
-from backend.doctor_app.models import Doctor
-
-from backend.user_app.models import Appointment, DiscountType
+from doctor_app.models import Doctor
+from user_app.models import Appointment, DiscountType
 
 
 class Department(ChoiceEnum):
@@ -222,7 +221,7 @@ class MedicineStock(TimeStampMixin):
     discount_type = EnumChoiceField(DiscountType)
 
 class MedicineOrder(TimeStampMixin):
-    user = models.ForeignKey(User, on_delete=models.SET_NULL)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     appointment_id = models.ForeignKey(Appointment, on_delete=models.SET_NULL, null=True, blank=True)
     prescribed_by = models.ForeignKey(Doctor, on_delete=models.SET_NULL, null=True, blank=True)
     prescribed_by_other = models.CharField(max_length=256, blank=True)
@@ -233,7 +232,7 @@ class MedicineOrder(TimeStampMixin):
 
 class MedicineOrderItem(models.Model):
     order = models.ForeignKey(MedicineOrder, on_delete=models.CASCADE)
-    medicine = models.ForeignKey(Medicine, on_delete=models.SET_NULL)
+    medicine = models.ForeignKey(Medicine, on_delete=models.SET_NULL, null=True, blank=True)
     medicine_stock = models.ForeignKey
     quantity = models.PositiveIntegerField()
     total_price = models.FloatField()
@@ -268,4 +267,4 @@ class MedicineOrderStatus(TimeStampMixin):
                             default=OrderStatus.CREATED)
     details = models.CharField(max_length=256, blank=True)
     remark = models.CharField(max_length=256, blank=True)
-    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL)    
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)    

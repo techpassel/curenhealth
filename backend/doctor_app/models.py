@@ -26,7 +26,7 @@ class Doctor(TimeStampMixin):
     )
     dob = models.DateField()
     image = models.TextField()
-    practicing_year = models.IntegerField()
+    practice_start_year = models.IntegerField()
     specialitities = models.ManyToManyField(Speciality)
     hospitals = models.ManyToManyField(Hospital)
     qualifications = models.ForeignKey(Qualification, on_delete=models.SET_NULL, null=True, blank=True)

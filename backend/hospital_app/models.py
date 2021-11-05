@@ -5,18 +5,16 @@ from enumchoicefield import ChoiceEnum, EnumChoiceField
 from enum import Enum
 
 # Create your models here.
-
-
 class City(TimeStampMixin):
-    name = models.CharField(max_length=100)
-    code = models.CharField(max_length=10)
-    city_added_by = models.ForeignKey(
+    name = models.CharField(max_length=50)
+    state = models.CharField(max_length=50)
+    added_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True)
 
 
 class Address(models.Model):
-    city = models.OneToOneField(
-        City, on_delete=models.SET_NULL, null=True, blank=True, primary_key=False)
+    city = models.ForeignKey(
+        City, on_delete=models.SET_NULL, null=True, blank=True)
     area = models.CharField(max_length=100)
     address = models.TextField()
     landmark = models.TextField()
@@ -119,6 +117,7 @@ class CheckupAppointmentStatus(ChoiceEnum):
     PENDING = 'pending'
     # Here we have inherited other status from 'AppointmentStatus'
 
+
 class CheckupAppointment(TimeStampMixin):
     checkup_plan = models.ForeignKey(CheckupPlan, on_delete=models.PROTECT)
     desired_date = models.DateField()
@@ -130,12 +129,16 @@ class CheckupAppointment(TimeStampMixin):
     expected_delivery_date = models.DateField()
     actual_delivery_time = models.DateTimeField()
 
+
 class CheckupStatus(TimeStampMixin):
-    checkup_appointment = models.ForeignKey(CheckupAppointment, on_delete=models.CASCADE)
+    checkup_appointment = models.ForeignKey(
+        CheckupAppointment, on_delete=models.CASCADE)
     status = EnumChoiceField(CheckupAppointmentStatus,
                              default=CheckupAppointmentStatus.CREATED)
     remark = models.CharField(max_length=256, blank=True)
-    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    updated_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True)
+
 
 class Checkupreports(TimeStampMixin):
     checkup_appointment = models.ForeignKey(

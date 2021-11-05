@@ -22,7 +22,7 @@ class UserDetails(models.Model):
         User,
         on_delete=models.CASCADE,
         primary_key=True,
-    ),
+    )
     dob = models.DateField()
     height = models.CharField(max_length=10)
     weight = models.FloatField()
@@ -192,7 +192,7 @@ class Coupon(TimeStampMixin):
     discount_type = EnumChoiceField(DiscountType)
     minimun_spent_amount = models.PositiveIntegerField()
     specific_users = models.ManyToManyField(User, related_name="assigned_users")
-    # We will use this field if we want to create coupon for some specific user 
-    # like in compensastion for some mistake or as reward for some good work or achievement etc.
+    # We will use specific_users field if we want to create coupon for some specific user 
+    # like in compensastion for some mistake or as reward for some achievement etc.
     valid_till = models.DateTimeField()
     

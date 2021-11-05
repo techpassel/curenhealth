@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models.deletion import CASCADE
 from enumchoicefield import ChoiceEnum, EnumChoiceField
 import jwt
 
@@ -63,12 +64,11 @@ class UserManager(BaseUserManager):
 
 # Create your models here.
 class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
-    class Meta:
-        db_table = 'user'
+    # class Meta:
+    #     db_table = 'user'
 
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
-    user_name = models.CharField(max_length=100)
     email = models.EmailField(db_index=True, unique=True)
     country_code = models.CharField(max_length=11)
     phone = models.BigIntegerField()
@@ -112,7 +112,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
         """
         This method is required by Django for things like handling emails.
         """
-        return self.last_name
+        return self.first_name
 
     def _generate_jwt_token(self):
         """
@@ -127,4 +127,12 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
         }, settings.SECRET_KEY, algorithm='HS256')
         return token
 
+class TokenType(ChoiceEnum):
+    SIGNUP_EMAIL_VERIFICATION_TOKEN = "signup_email_verification_token"
+    UPDATE_EMAIL_VERIFICATION_TOKEN = "update_email_verification_token"
 
+class VerificationToken(TimeStampMixin):
+    user = models.ForeignKey(User, on_delete=CASCADE)
+    token_type = EnumChoiceField(TokenType)
+    token = models.CharField(max_length=100, unique=True)
+    updating_value = models.CharField(max_length=100)

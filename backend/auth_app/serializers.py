@@ -1,8 +1,7 @@
 from rest_framework import serializers
 from enumchoicefield import EnumChoiceField
-from .models import User, UserType
+from .models import User, UserType, VerificationToken
 from django.contrib.auth import authenticate
-
 
 class RegistrationSerializer(serializers.ModelSerializer):
     # Ensure passwords are at least 8 characters long, no longer than 128
@@ -51,7 +50,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         # List all of the fields that could possibly be included in a request or response
-        fields = ('email', 'first_name', 'last_name', 'country_code', 'phone',
+        fields = ('id', 'email', 'first_name', 'last_name', 'country_code', 'phone',
                   'usertype', 'password', 'token', 'is_email_verified', 'is_phone_verified')
         # If you want to include all fields then you can define it as follows also.
         # fields = ('__all__')
@@ -110,7 +109,13 @@ class LoginSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         # List all of the fields that could possibly be included in a request or response
-        fields = ('email', 'first_name', 'last_name', 'country_code', 'phone',
+        fields = ('id', 'email', 'first_name', 'last_name', 'country_code', 'phone',
                   'usertype', 'password', 'token', 'is_email_verified', 'is_phone_verified')
         # If you want to include all fields then you can define it as follows also.
         # fields = ('__all__')
+
+class VerificationTokenSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model= VerificationToken
+        fields = ('id', 'user', 'token_type', 'token', 'updating_value')
