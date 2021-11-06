@@ -8,7 +8,7 @@ urlpatterns = [
     path('update-user/', views.UpdateUserView.as_view()),
     path('update-password/', views.UpdatePasswordView.as_view()),
     path('update-email-request/', views.UpdateEmailRequestView.as_view()),
-    path('update-email-verify/<str:verification_token>', views.UpdateEmailVerificationView.as_view())
+    path('update-email-verify/<str:token>', views.UpdateEmailVerificationView.as_view())
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

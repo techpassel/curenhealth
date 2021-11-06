@@ -129,7 +129,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
+AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.AllowAllUsersModelBackend']
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
@@ -155,7 +155,7 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
-    'EXCEPTION_HANDLER': 'auth_app.exceptions.core_exception_handler',
+    'EXCEPTION_HANDLER': 'utils.exception_handler.custom_exception_handler',
     'NON_FIELD_ERRORS_KEY': 'error',
     'DEFAULT_AUTHENTICATION_CLASSES': ('auth_app.authentication.JWTAuthentication', ),
 }

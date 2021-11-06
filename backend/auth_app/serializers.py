@@ -18,7 +18,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
     country_code = serializers.CharField(max_length=11, required=False)
     phone = serializers.IntegerField()
     usertype = EnumChoiceField(UserType)
-    token = serializers.CharField(max_length=255, read_only=True)
+    is_active = serializers.BooleanField(required=False)
     is_email_verified = serializers.BooleanField(required=False)
     is_phone_verified = serializers.BooleanField(required=False)
 
@@ -51,7 +51,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
         model = User
         # List all of the fields that could possibly be included in a request or response
         fields = ('id', 'email', 'first_name', 'last_name', 'country_code', 'phone',
-                  'usertype', 'password', 'token', 'is_email_verified', 'is_phone_verified')
+                  'usertype', 'password', 'is_active', 'is_email_verified', 'is_phone_verified')
         # If you want to include all fields then you can define it as follows also.
         # fields = ('__all__')
 
@@ -101,9 +101,8 @@ class LoginSerializer(serializers.ModelSerializer):
 
         if not user.is_active:
             raise serializers.ValidationError(
-                'This user has been deactivated.'
+                'This user is deactivated.'
             )
-        
         return user
 
     class Meta:

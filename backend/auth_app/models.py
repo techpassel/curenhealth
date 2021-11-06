@@ -73,7 +73,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
     country_code = models.CharField(max_length=11)
     phone = models.BigIntegerField()
     usertype = EnumChoiceField(UserType, default=UserType.USER)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)
     is_email_verified = models.BooleanField(default=False)
     is_phone_verified = models.BooleanField(default=False)
     USERNAME_FIELD = 'email'
@@ -130,6 +130,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
 class TokenType(ChoiceEnum):
     SIGNUP_EMAIL_VERIFICATION_TOKEN = "signup_email_verification_token"
     UPDATE_EMAIL_VERIFICATION_TOKEN = "update_email_verification_token"
+    RESET_PASSWORD_TOKEN = "reset_password_token"
 
 class VerificationToken(TimeStampMixin):
     user = models.ForeignKey(User, on_delete=CASCADE)
