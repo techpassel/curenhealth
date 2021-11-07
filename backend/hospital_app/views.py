@@ -1,9 +1,12 @@
+from functools import partial
 from rest_framework import status
+from rest_framework.decorators import permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from auth_app.models import User
-from hospital_app.models import City
+from utils.common_methods import generate_serializer_error
+from hospital_app.models import Address, City
 from hospital_app.serializers import AddressSerializer, CitySerializer
 
 # Create your views here.
@@ -30,9 +33,19 @@ class AddressView(APIView):
         city = City.objects.get(id=city_id);
         del data["city_id"]
         data["city"] = city.id
-        serializer = AddressSerializer(data=data)
+        serializer = AddressSerializer(data=data, partial=True)
 
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class GetAddressView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, id):
+        try:
+            address = Address.objects.select_related("city").filter(pk=id).first()
+            serializer = AddressSerializer(address)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)

@@ -3,11 +3,13 @@ from django.contrib.auth import authenticate
 from django.db.utils import IntegrityError
 from django.http.response import HttpResponse
 from rest_framework import status
+from rest_framework.decorators import permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from auth_app.models import TokenType, User, VerificationToken
 from auth_app.serializers import RegistrationSerializer, VerificationTokenSerializer
+from user_app.models import UserDetails
 from hospital_app.models import Address
 from .serializers import UserDetailsSerializer, UserSerializer
 from django.conf import settings
@@ -18,24 +20,21 @@ import secrets
 import pytz
 # Create your views here.
 
-
 class UserDetailsView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, format=None):
-        return Response("Wait")
+    def get(self, request):
+        users = UserDetails.objects.all()
+        serializer = UserDetailsSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def post(self, request, format=None):
+    def post(self, request):
         try:
             data = request.data
             user_id = data.get("user_id")
-            address_id = data.get("address_id")
             user = User.objects.get(id=user_id)
-            address = Address.objects.get(id=address_id)
             del data["user_id"]
-            del data["address_id"]
             data["user"] = user.id
-            data["address"] = address.id
             serializer = UserDetailsSerializer(data=request.data)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
@@ -46,6 +45,19 @@ class UserDetailsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class GetUserDetailsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, user_id):
+        try:
+            user_details = UserDetails.objects.get(pk=user_id)
+            serializer = UserDetailsSerializer(user_details)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class DeleteUserView(APIView):
     permission_classes = [IsAuthenticated]
@@ -97,10 +109,9 @@ class UpdatePasswordView(APIView):
                 return Response("User id cannot be empty", status=status.HTTP_400_BAD_REQUEST)
             user = User.objects.get(id=user_data['id'])
             current_password = user_data['current_password']
-            auth_user = authenticate(
-                username=user.email, password=current_password)
+            auth_user = authenticate(username=user.email, password=current_password)
             if auth_user is None:
-                return Response('User not found.', status=status.HTTP_400_BAD_REQUEST)
+                return Response("Your provided current password is incorrect. If you forget your password then please logout and click on 'forget password' link and follow instructions to reset your password.", status=status.HTTP_400_BAD_REQUEST)
             new_data = {"password": user_data["new_password"]}
             serializer = RegistrationSerializer(
                 instance=user, data=new_data, partial=True)
@@ -126,7 +137,9 @@ class UpdateEmailRequestView(APIView):
                 email=user_data['new_email']).first()
             if email_user != None:
                 return Response("New email you provided already exists.", status=status.HTTP_400_BAD_REQUEST)
-            user = User.objects.get(id=user_data['id'])
+            user = User.objects.filter(id=user_data['id']).first()
+            if user == None:
+                return Response("User with given id not found", status=status.HTTP_400_BAD_REQUEST)
             if user.email != user_data['current_email']:
                 return Response("Current email did not matched with your stored data.", status=status.HTTP_400_BAD_REQUEST)
             token = secrets.token_urlsafe(57)
@@ -147,7 +160,6 @@ class UpdateEmailRequestView(APIView):
                 'token_type': TokenType.UPDATE_EMAIL_VERIFICATION_TOKEN,
                 'token': token,
                 'updating_value': user_data['new_email']}
-
             existing_verification_token = VerificationToken.objects.filter(
                 user=user).first()
             if existing_verification_token != None:

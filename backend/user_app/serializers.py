@@ -2,16 +2,15 @@ from rest_framework import serializers
 from enumchoicefield import EnumChoiceField
 
 from auth_app.models import User, UserType
+from hospital_app.serializers import AddressSerializer
 from .models import UserDetails
 
 
 class UserDetailsSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = UserDetails
         fields = ['user', 'dob', 'height', 'weight',
-                  'blood_group', 'image', 'address']
-
+                  'blood_group', 'image']
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(

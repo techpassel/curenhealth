@@ -28,7 +28,6 @@ class UserDetails(models.Model):
     weight = models.FloatField()
     blood_group = models.CharField(max_length=10)
     image = models.TextField()
-    address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True)
 
 class UserSubscriptions(TimeStampMixin):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

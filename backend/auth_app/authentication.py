@@ -80,7 +80,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
         try:
             user = User.objects.get(pk=payload['id'])
         except User.DoesNotExist:
-            msg = 'No user matching this token was found.'
+            msg = 'Invalid authentication token.'
             raise exceptions.AuthenticationFailed(msg)
 
         if not user.is_active:

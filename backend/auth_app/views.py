@@ -45,7 +45,6 @@ def signup(request):
     except:
         return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 @csrf_exempt
 @api_view(['POST'])
 # @renderer_classes([UserJSONRenderer])
@@ -56,6 +55,8 @@ def resend_activation_email(request):
         user = User.objects.filter(email=email).first()
         if user == None:
             return Response("Email not found.Please check your email.", status=status.HTTP_400_BAD_REQUEST)
+        if user.is_active == True:
+            return Response("Your email is already verified and account is activated.", status=status.HTTP_400_BAD_REQUEST)
         send_account_activation_email(user)
         return Response(status=status.HTTP_200_OK)
     except IntegrityError as err:
@@ -133,10 +134,9 @@ def activate_account(request, token):
     except:
         return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 @csrf_exempt
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def forget_password(request):
     try:
         email = request.data.get('email')
@@ -144,25 +144,25 @@ def forget_password(request):
         if user == None:
             return Response("User with given email doesn't exist.", status=status.HTTP_400_BAD_REQUEST)
         token = secrets.token_urlsafe(57)
-        url = f'{settings.FRONTEND_BASE_URL}auth/reset-password/{token}'
-        header_message = f"Hi {user['first_name']}.Please click on the button below to reset your password."
+        url = f'{settings.FRONTEND_BASE_URL}auth/verify-reset-password-token/{token}'
+        header_message = f"Hi {user.get_full_name()}.Please click on the button below to reset your password."
         html_template = 'email_verification_template.html'
         html_message = render_to_string(
             html_template, {'header_message': header_message, 'url': url})
         subject = 'Reset your password.'
         email_from = settings.DEFAULT_FROM_EMAIL
-        recipient_list = [user['email'], ]
+        recipient_list = [user.email, ]
         message = EmailMessage(subject, html_message,
                             email_from, recipient_list)
         message.content_subtype = 'html'
         message.send()
         token_data = {
-            'user': user['id'],
+            'user': user.id,
             'token_type': TokenType.RESET_PASSWORD_TOKEN,
             'token': token
         }
         existing_verification_token = VerificationToken.objects.filter(
-            user=user['id'], 
+            user=user.id, 
             token_type = TokenType.RESET_PASSWORD_TOKEN).first()
         if existing_verification_token != None:
             existing_verification_token.delete()
@@ -171,11 +171,40 @@ def forget_password(request):
         if not serializer.is_valid():
             raise Exception(generate_serializer_error(serializer.errors))
         serializer.save()
-        return
+        return Response("A link has been sent to your registered email id to reset your password.Please check your email.", status=status.HTTP_200_OK)
     except (AssertionError, Exception) as err:
         return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
     except:
         return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def verify_reset_password_token(request, token):
+    try:
+        response = {}
+        verification_token_obj = VerificationToken.objects.filter(
+            token=token).first()
+        if(verification_token_obj == None):
+            response['type'] = "fail"
+            response['message'] = "Token is invalid or expired.Please complete the procedure again to resend email."
+        else:
+            utc = pytz.UTC
+            token_expiry_time = (
+                verification_token_obj.created_at + timedelta(hours=24)).replace(tzinfo=utc)
+            current_time = datetime.now().replace(tzinfo=utc)
+            if(token_expiry_time < current_time):
+                response['type'] = "fail"
+                response['message'] = "Token is expired.Please complete the procedure again to resend email."
+            else:
+                response['type'] = "success"
+                response['message'] = "Token verified successfully."
+        return Response(response, status=status.HTTP_200_OK)
+    except (AssertionError, Exception) as err:
+        return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+    except:
+        return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @csrf_exempt
 @api_view(['POST'])
@@ -195,7 +224,7 @@ def reset_password(request):
                 verification_token_obj.created_at + timedelta(hours=24)).replace(tzinfo=utc)
             current_time = datetime.now().replace(tzinfo=utc)
             if(token_expiry_time < current_time):
-                response = "Token is expired.Please try to update your email again."
+                response = "Token is expired.Please complete the procedure again to resend email."
             else:
                 token_user = verification_token_obj.user
                 new_data = {'password': new_password}
