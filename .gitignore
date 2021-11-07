@@ -73,3 +73,5 @@ djangoenv/
 
 # pyenv
 .python-version
+
+**/migrations/
