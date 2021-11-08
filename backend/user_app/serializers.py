@@ -9,7 +9,7 @@ from .models import UserDetails
 class UserDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserDetails
-        fields = ['user', 'dob', 'height', 'weight',
+        fields = ['id', 'user', 'dob', 'height', 'weight',
                   'blood_group', 'image']
 
 class UserSerializer(serializers.ModelSerializer):

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from functools import partial
 from django.contrib.auth import authenticate
 from django.db.utils import IntegrityError
 from django.http.response import HttpResponse
@@ -45,7 +46,6 @@ class UserDetailsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 class GetUserDetailsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -59,17 +59,34 @@ class GetUserDetailsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class DeleteUserView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, user_id):
+class UpdateUserDetailsView(APIView):
+    def put(self, request):
         try:
-            user_instance = User.objects.get(id=user_id)
-            user_instance.delete()
-            return Response(status=status.HTTP_200_OK)
-        except User.DoesNotExist as err:
-            return Response("User not found.", status=status.HTTP_304_NOT_MODIFIED)
+            user_details = UserDetails.objects.filter(id = request.data.get("id")).first()
+            if user_details == None:
+                return Response("No Userdetails found with given id.", status=status.HTTP_400_BAD_REQUEST)    
+            serializer = UserDetailsSerializer(user_details, data=request.data, partial=True)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+class DeleteUserDetailsView(APIView):
+    def get(self, request, id):
+        try:
+            user_details = UserDetails.objects.filter(id=id).first()
+            if user_details == None:
+                return Response("No Userdetails found with given id.", status=status.HTTP_400_BAD_REQUEST)
+            user_details.delete()
+            return Response("Userdetails deleted successfully.", status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class UpdateUserView(APIView):
     permission_classes = [IsAuthenticated]
@@ -98,6 +115,18 @@ class UpdateUserView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+class DeleteUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, user_id):
+        try:
+            user_instance = User.objects.get(id=user_id)
+            if user_instance == None:
+                return Response("No User found with given id.", status=status.HTTP_400_BAD_REQUEST)
+            user_instance.delete()
+            return Response(status=status.HTTP_200_OK)
+        except User.DoesNotExist as err:
+            return Response("User not found.", status=status.HTTP_304_NOT_MODIFIED)
 
 class UpdatePasswordView(APIView):
     permission_classes = [IsAuthenticated]
