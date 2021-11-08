@@ -4,6 +4,7 @@ from doctor_app.models import Consultation, ConsultationSlot, Doctor, Speciality
 from hospital_app.models import Hospital, Address, AppointmentStatus
 from enumchoicefield import ChoiceEnum, EnumChoiceField
 from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.fields import HStoreField
 
 # Create your models here.
 class SubscriptionTypes(ChoiceEnum):
@@ -46,40 +47,27 @@ class HealthConditions(TimeStampMixin):
     details = models.TextField(blank=True)
     added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="health_condition_added_by")
 
-class BloodPressure(TimeStampMixin):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="blood_pressure_user"
-    )
-    up_value = models.IntegerField()
-    down_value = models.IntegerField()
-    is_latest = models.BooleanField(default=True)
-    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="blood_pressure_added_by")
-    measured_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="blood_pressure_measured_by")
 
-class SugarLevel(TimeStampMixin):
+class HealthRecordTypes(ChoiceEnum):
+    BLOOD_PRESSURE = "blood_pressure"
+    SUGAR_LEVEl = "sugar_level"
+    EYESIGNT = "eyesight"
+    OTHER = "other"
+
+class HealthRecord(TimeStampMixin):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name="sugar_level_user"
     )
-    value = models.IntegerField()
+    type = EnumChoiceField(HealthRecordTypes)
+    other_type_name = models.CharField(max_length=100, blank=True)
+    value = HStoreField()
+    details = models.TextField(blank=True)
     is_latest = models.BooleanField(default=True)
     added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sugar_level_added_by")
-    measured_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sugar_level_measured_by")
-
-class EyeSight(TimeStampMixin):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="eye_sight_user"
-    )
-    eyesight_value = models.IntegerField(null=True, blank=True)
-    power_glass_value = models.CharField(max_length=100, blank=True)
-    is_latest = models.BooleanField(default=True)
-    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="eye_sight_added_by")
-    measured_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="eye_sight_measured_by")
+    measured_by = models.CharField(max_length=100, blank=True)
+    report_url = models.TextField(blank=True)
 
 class AppointmentType(ChoiceEnum):
     FRESH = 'fresh'

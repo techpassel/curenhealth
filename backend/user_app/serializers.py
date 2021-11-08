@@ -1,9 +1,10 @@
+from django.db.models import fields
 from rest_framework import serializers
 from enumchoicefield import EnumChoiceField
 
-from auth_app.models import User, UserType
-from hospital_app.serializers import AddressSerializer
-from .models import UserDetails
+from auth_app.models import User
+
+from .models import HealthRecord, HealthRecordTypes, UserDetails
 
 
 class UserDetailsSerializer(serializers.ModelSerializer):
@@ -12,46 +13,15 @@ class UserDetailsSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'dob', 'height', 'weight',
                   'blood_group', 'image']
 
-class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(
-        max_length=128,
-        min_length=8,
-        write_only=True, 
-        required=False
-    )
+class HealthRecordsSerializer(serializers.ModelSerializer):
+    added_by_name = serializers.CharField(read_only=True, source="user.get_full_name") 
+    type = EnumChoiceField(HealthRecordTypes)
+    class Meta:
+        model = HealthRecord
+        fields = ['id', 'user', 'type', 'other_type_name', 'value', 'details', 'is_latest', 'added_by', 'added_by_name', 'measured_by', 'report_url', 'created_at', 'updated_at']
 
-    email = serializers.EmailField(max_length=256, required=False)
-    first_name = serializers.CharField(max_length=50, required=False)
-    last_name = serializers.CharField(max_length=50, required=False)
-    country_code = serializers.CharField(max_length=11, required=False)
-    phone = serializers.IntegerField(required=False)
-    # usertype = EnumChoiceField(UserType)
-    is_email_verified = serializers.BooleanField(required=False)
-    is_phone_verified = serializers.BooleanField(required=False)
+class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'email', 'first_name', 'last_name', 'country_code',
-                  'phone', 'password', 'is_email_verified', 'is_phone_verified')
-
-    def update(self, instance, validated_data):
-        instance.id = validated_data.get('id', instance.id)
-        instance.email = validated_data.get('email', instance.email)
-        instance.first_name = validated_data.get(
-            'first_name', instance.first_name)
-        instance.last_name = validated_data.get(
-            'last_name', instance.last_name)
-        instance.phone = validated_data.get('phone', instance.phone)
-        instance.country_code = validated_data.get(
-            'country_code', instance.country_code)
-        instance.is_active = validated_data.get(
-            'is_active', instance.is_active)
-        instance.is_email_verified = validated_data.get(
-            'is_email_verified', instance.is_email_verified)
-        instance.is_phone_verified = validated_data.get(
-            'is_phone_verified', instance.is_phone_verified)
-        password = validated_data.get('password', None)
-        if password is not None:
-            instance.set_password(password)
-        instance.save()
-        return instance
+        fields = ['id', 'first_name', 'last_name']

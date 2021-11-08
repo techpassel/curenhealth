@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from functools import partial
 from django.contrib.auth import authenticate
 from django.db.utils import IntegrityError
-from django.http.response import HttpResponse
 from rest_framework import status
 from rest_framework.decorators import permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -10,15 +9,15 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from auth_app.models import TokenType, User, VerificationToken
 from auth_app.serializers import RegistrationSerializer, VerificationTokenSerializer
-from user_app.models import UserDetails
-from hospital_app.models import Address
-from .serializers import UserDetailsSerializer, UserSerializer
+from user_app.serializers import HealthRecordsSerializer, UserDetailsSerializer
+from user_app.models import HealthRecord, HealthRecordTypes, UserDetails
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.core.mail import EmailMessage
 from utils.common_methods import generate_serializer_error
 import secrets
 import pytz
+import json
 # Create your views here.
 
 class UserDetailsView(APIView):
@@ -51,7 +50,7 @@ class GetUserDetailsView(APIView):
 
     def get(self, request, user_id):
         try:
-            user_details = UserDetails.objects.get(pk=user_id)
+            user_details = UserDetails.objects.get(user=user_id)
             serializer = UserDetailsSerializer(user_details)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
@@ -60,6 +59,8 @@ class GetUserDetailsView(APIView):
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class UpdateUserDetailsView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def put(self, request):
         try:
             user_details = UserDetails.objects.filter(id = request.data.get("id")).first()
@@ -76,7 +77,7 @@ class UpdateUserDetailsView(APIView):
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class DeleteUserDetailsView(APIView):
-    def get(self, request, id):
+    def delete(self, request, id):
         try:
             user_details = UserDetails.objects.filter(id=id).first()
             if user_details == None:
@@ -101,11 +102,11 @@ class UpdateUserView(APIView):
                 if key in user_data:
                     return Response(f"{key} can't be changed from this api.", status=status.HTTP_403_FORBIDDEN)
             user = User.objects.get(id=user_data['id'])
-            serializer = UserSerializer(instance=user, data=user_data)
+            serializer = RegistrationSerializer(instance=user, data=user_data, partial=True)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(status=status.HTTP_201_CREATED)
         except IntegrityError as err:
             err = err.args[0].split("DETAIL:  Key")
             err = ((err[1] if len(err) > 1 else err[0]).strip())
@@ -118,7 +119,7 @@ class UpdateUserView(APIView):
 class DeleteUserView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, user_id):
+    def delete(self, request, user_id):
         try:
             user_instance = User.objects.get(id=user_id)
             if user_instance == None:
@@ -204,7 +205,6 @@ class UpdateEmailRequestView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 class UpdateEmailVerificationView(APIView):
     permission_classes = [AllowAny]
 
@@ -233,8 +233,82 @@ class UpdateEmailVerificationView(APIView):
                 serializer.save()
                 response = "Email updated successfully"
                 verification_token_obj.delete()
-            return HttpResponse(response)
+            return Response(response, status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class HealthRecordsView(APIView):
+    def post(self, request, format=None):
+        try:
+            data = request.data
+            other_type_name = data.other_type_name if "other_type_name" in data else "";
+            type = HealthRecordTypes[data['type']]
+            existing_latest = HealthRecord.objects.filter(user=data['user_id'], type=type, other_type_name=other_type_name, is_latest=True)
+            islatest_data = {}
+            islatest_data['is_latest'] = False
+            for lat in existing_latest:
+                serializer1 = HealthRecordsSerializer(lat, data=islatest_data, partial=True)
+                if not serializer1.is_valid():
+                    raise Exception(generate_serializer_error(serializer1.errors))
+                serializer1.save()
+            user = User.objects.filter(id=data['user_id']).first()
+            if user == None:
+                return Response("User not found", status=status.HTTP_400_BAD_REQUEST)
+            data['user'] = user.id;
+            added_by = User.objects.filter(id=data['added_by']).first()
+            if added_by == None:
+                return Response("'added_by' user not found", status=status.HTTP_400_BAD_REQUEST)
+            data['added_by'] = added_by.id;
+            serializer = HealthRecordsSerializer(data=data)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetHealthRecordsView(APIView):
+    def get(self, request, user_id):
+        try:
+            health_records = HealthRecord.objects.filter(user=user_id)
+            serializer = HealthRecordsSerializer(health_records, many=True)
+
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class  UpdateHealthRecordsView(APIView):
+    def put(self, request):
+        try:
+            health_records = HealthRecord.objects.filter(id=request.data.get("id")).first()
+            if health_records == None:
+                return Response("Health Record not found", status=status.HTTP_400_BAD_REQUEST)
+            serializer = HealthRecordsSerializer(health_records, data=request.data, partial=True)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class DeleteHealthRecordsView(APIView):
+    def delete(self, request, id):
+        try:
+            health_records = HealthRecord.objects.filter(id=id).first()
+            if health_records == None:
+                return Response("Health Record not found", status=status.HTTP_400_BAD_REQUEST)
+            health_records.delete()
+            return Response(status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

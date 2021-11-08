@@ -59,7 +59,8 @@ INSTALLED_APPS = [
     'doctor_app',
     'hospital_app',
     'admin_app',
-    'admin_pharmacy_app'
+    'admin_pharmacy_app',
+    'django.contrib.postgres'
 ]
 
 MIDDLEWARE = [
