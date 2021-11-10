@@ -4,7 +4,7 @@ from enumchoicefield import EnumChoiceField
 
 from auth_app.models import User
 
-from .models import HealthRecord, HealthRecordTypes, UserDetails
+from .models import HealthRecord, HealthRecordTypes, SubscriptionSchemes, UserDetails
 
 
 class UserDetailsSerializer(serializers.ModelSerializer):
@@ -21,7 +21,11 @@ class HealthRecordsSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'type', 'other_type_name', 'value', 'details', 'is_latest', 'added_by', 'added_by_name', 'measured_by', 'report_url', 'created_at', 'updated_at']
 
 class UserSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = User
         fields = ['id', 'first_name', 'last_name']
+
+class SubscriptionSchemesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SubscriptionSchemes
+        fields = ['id', 'subscription_type', 'validity', 'charges']

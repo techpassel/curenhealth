@@ -4,8 +4,46 @@ from enumchoicefield import ChoiceEnum, EnumChoiceField
 from auth_app.models import TimeStampMixin, User
 from django.contrib.postgres.fields import ArrayField
 from doctor_app.models import Doctor
-from user_app.models import Appointment, DiscountType
+from user_app.models import Appointment
 
+class OfferOn(ChoiceEnum):
+    IN_HOUSE_CONSULTATION = 'in_house_consultation'
+    ONLINE_CONSULTATION = 'online_consultation'
+    GENERAL_SUBSCRIPTION = 'general_subscription'
+    PREMIUM_SUBSCRIPTION = 'premium_subscription'
+    GOLD_SUBSCRIPTION = 'gold_subscription'
+    MEDICINE = 'medicine'
+    CLIENT_JOINING = 'client_joining'
+    CLIENT_MEMBERSHIP_RENEWAL = 'client_membership_renewal'
+    ALL = 'all'
+    SPECIFIC = 'specific'
+
+class OfferFor(ChoiceEnum):
+    GENERAL_CUSTOMER = 'general_customer'
+    PREMIUM_CUSTOMER = 'premium_customer'
+    GOLD_CUSTOMER = 'gold_customer'
+    DOCTOR = 'doctor'
+    HOSPITAL = 'hospital'
+    PATHLAB = 'pathlab'
+    ADMIN_STAFF = 'admin_staff'
+    ALL = 'all'
+    SPECIFIC = 'specific'
+
+class DiscountType(ChoiceEnum):
+    IN_RUPEE = "in_rupee"
+    IN_PERCENTAGE = "in_percentage"
+
+class Coupon(TimeStampMixin):
+    coupon_code = models.CharField(max_length=50)
+    offer_on = ArrayField(EnumChoiceField(OfferOn))
+    offer_for = ArrayField(EnumChoiceField(OfferFor))
+    discount = models.PositiveIntegerField()
+    discount_type = EnumChoiceField(DiscountType)
+    minimun_spent_amount = models.PositiveIntegerField()
+    specific_users = models.ManyToManyField(User, related_name="assigned_users")
+    # We will use specific_users field if we want to create coupon for some specific user 
+    # like in compensastion for some mistake or as reward for some achievement etc.
+    valid_till = models.DateTimeField()
 
 class Department(ChoiceEnum):
     SALES = 'sales'

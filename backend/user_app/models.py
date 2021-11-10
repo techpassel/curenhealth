@@ -15,8 +15,8 @@ class SubscriptionTypes(ChoiceEnum):
 # We will have to manually create different schemes for different subscriptions and different validity
 class SubscriptionSchemes(TimeStampMixin):
     subscription_type = EnumChoiceField(SubscriptionTypes)
-    days = models.PositiveIntegerField()
-    charges = models.PositiveIntegerField()
+    validity = models.PositiveIntegerField()        #In days
+    charges = models.FloatField()
 
 class UserDetails(models.Model):
     user = models.OneToOneField(
@@ -46,7 +46,6 @@ class HealthConditions(TimeStampMixin):
     condition = models.CharField(max_length=256)
     details = models.TextField(blank=True)
     added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="health_condition_added_by")
-
 
 class HealthRecordTypes(ChoiceEnum):
     BLOOD_PRESSURE = "blood_pressure"
@@ -143,43 +142,4 @@ class Feedback(TimeStampMixin):
     overall_rating = models.FloatField()
     subtype_ratings = models.JSONField()
     # subtype_ratings will have following fields - rating, remark 
-
-class OfferOn(ChoiceEnum):
-    IN_HOUSE_CONSULTATION = 'in_house_consultation'
-    ONLINE_CONSULTATION = 'online_consultation'
-    GENERAL_SUBSCRIPTION = 'general_subscription'
-    PREMIUM_SUBSCRIPTION = 'premium_subscription'
-    GOLD_SUBSCRIPTION = 'gold_subscription'
-    MEDICINE = 'medicine'
-    CLIENT_JOINING = 'client_joining'
-    CLIENT_MEMBERSHIP_RENEWAL = 'client_membership_renewal'
-    ALL = 'all'
-    SPECIFIC = 'specific'
-
-class OfferFor(ChoiceEnum):
-    GENERAL_CUSTOMER = 'general_customer'
-    PREMIUM_CUSTOMER = 'premium_customer'
-    GOLD_CUSTOMER = 'gold_customer'
-    DOCTOR = 'doctor'
-    HOSPITAL = 'hospital'
-    PATHLAB = 'pathlab'
-    ADMIN_STAFF = 'admin_staff'
-    ALL = 'all'
-    SPECIFIC = 'specific'
-
-class DiscountType(ChoiceEnum):
-    IN_RUPEE = "in_rupee"
-    IN_PERCENTAGE = "in_percentage"
-
-class Coupon(TimeStampMixin):
-    coupon_code = models.CharField(max_length=50)
-    offer_on = ArrayField(EnumChoiceField(OfferOn))
-    offer_for = ArrayField(EnumChoiceField(OfferFor))
-    discount = models.PositiveIntegerField()
-    discount_type = EnumChoiceField(DiscountType)
-    minimun_spent_amount = models.PositiveIntegerField()
-    specific_users = models.ManyToManyField(User, related_name="assigned_users")
-    # We will use specific_users field if we want to create coupon for some specific user 
-    # like in compensastion for some mistake or as reward for some achievement etc.
-    valid_till = models.DateTimeField()
     

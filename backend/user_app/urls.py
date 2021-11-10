@@ -16,6 +16,7 @@ urlpatterns = [
     path('health-record/<int:user_id>', views.GetHealthRecordsView.as_view()),
     path('update-health-record/', views.UpdateHealthRecordsView.as_view()),
     path('delete-health-record/<int:id>', views.DeleteHealthRecordsView.as_view()),
+    path('subscription-schemes/', views.GetAllSubscriptionSchemesView.as_view()),
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

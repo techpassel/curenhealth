@@ -9,8 +9,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from auth_app.models import TokenType, User, VerificationToken
 from auth_app.serializers import RegistrationSerializer, VerificationTokenSerializer
-from user_app.serializers import HealthRecordsSerializer, UserDetailsSerializer
-from user_app.models import HealthRecord, HealthRecordTypes, UserDetails
+from user_app.serializers import HealthRecordsSerializer, SubscriptionSchemesSerializer, UserDetailsSerializer
+from user_app.models import HealthRecord, HealthRecordTypes, SubscriptionSchemes, UserDetails
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.core.mail import EmailMessage
@@ -19,6 +19,7 @@ import secrets
 import pytz
 import json
 # Create your views here.
+
 
 class UserDetailsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -45,6 +46,7 @@ class UserDetailsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class GetUserDetailsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -58,15 +60,18 @@ class GetUserDetailsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class UpdateUserDetailsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def put(self, request):
         try:
-            user_details = UserDetails.objects.filter(id = request.data.get("id")).first()
+            user_details = UserDetails.objects.filter(
+                id=request.data.get("id")).first()
             if user_details == None:
-                return Response("No Userdetails found with given id.", status=status.HTTP_400_BAD_REQUEST)    
-            serializer = UserDetailsSerializer(user_details, data=request.data, partial=True)
+                return Response("No Userdetails found with given id.", status=status.HTTP_400_BAD_REQUEST)
+            serializer = UserDetailsSerializer(
+                user_details, data=request.data, partial=True)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
@@ -75,6 +80,7 @@ class UpdateUserDetailsView(APIView):
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class DeleteUserDetailsView(APIView):
     def delete(self, request, id):
@@ -89,6 +95,7 @@ class DeleteUserDetailsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class UpdateUserView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -102,7 +109,8 @@ class UpdateUserView(APIView):
                 if key in user_data:
                     return Response(f"{key} can't be changed from this api.", status=status.HTTP_403_FORBIDDEN)
             user = User.objects.get(id=user_data['id'])
-            serializer = RegistrationSerializer(instance=user, data=user_data, partial=True)
+            serializer = RegistrationSerializer(
+                instance=user, data=user_data, partial=True)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
@@ -115,6 +123,7 @@ class UpdateUserView(APIView):
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class DeleteUserView(APIView):
     permission_classes = [IsAuthenticated]
@@ -129,6 +138,7 @@ class DeleteUserView(APIView):
         except User.DoesNotExist as err:
             return Response("User not found.", status=status.HTTP_304_NOT_MODIFIED)
 
+
 class UpdatePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -139,7 +149,8 @@ class UpdatePasswordView(APIView):
                 return Response("User id cannot be empty", status=status.HTTP_400_BAD_REQUEST)
             user = User.objects.get(id=user_data['id'])
             current_password = user_data['current_password']
-            auth_user = authenticate(username=user.email, password=current_password)
+            auth_user = authenticate(
+                username=user.email, password=current_password)
             if auth_user is None:
                 return Response("Your provided current password is incorrect. If you forget your password then please logout and click on 'forget password' link and follow instructions to reset your password.", status=status.HTTP_400_BAD_REQUEST)
             new_data = {"password": user_data["new_password"]}
@@ -205,6 +216,7 @@ class UpdateEmailRequestView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class UpdateEmailVerificationView(APIView):
     permission_classes = [AllowAny]
 
@@ -229,7 +241,8 @@ class UpdateEmailVerificationView(APIView):
                     serializer = RegistrationSerializer(
                         instance=token_user, data=new_data, partial=True)
                     if not serializer.is_valid():
-                        raise Exception(generate_serializer_error(serializer.errors))
+                        raise Exception(
+                            generate_serializer_error(serializer.errors))
                 serializer.save()
                 response = "Email updated successfully"
                 verification_token_obj.delete()
@@ -239,28 +252,34 @@ class UpdateEmailVerificationView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class HealthRecordsView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request, format=None):
         try:
             data = request.data
-            other_type_name = data.other_type_name if "other_type_name" in data else "";
+            other_type_name = data.other_type_name if "other_type_name" in data else ""
             type = HealthRecordTypes[data['type']]
-            existing_latest = HealthRecord.objects.filter(user=data['user_id'], type=type, other_type_name=other_type_name, is_latest=True)
+            existing_latest = HealthRecord.objects.filter(
+                user=data['user_id'], type=type, other_type_name=other_type_name, is_latest=True)
             islatest_data = {}
             islatest_data['is_latest'] = False
             for lat in existing_latest:
-                serializer1 = HealthRecordsSerializer(lat, data=islatest_data, partial=True)
+                serializer1 = HealthRecordsSerializer(
+                    lat, data=islatest_data, partial=True)
                 if not serializer1.is_valid():
-                    raise Exception(generate_serializer_error(serializer1.errors))
+                    raise Exception(
+                        generate_serializer_error(serializer1.errors))
                 serializer1.save()
             user = User.objects.filter(id=data['user_id']).first()
             if user == None:
                 return Response("User not found", status=status.HTTP_400_BAD_REQUEST)
-            data['user'] = user.id;
+            data['user'] = user.id
             added_by = User.objects.filter(id=data['added_by']).first()
             if added_by == None:
                 return Response("'added_by' user not found", status=status.HTTP_400_BAD_REQUEST)
-            data['added_by'] = added_by.id;
+            data['added_by'] = added_by.id
             serializer = HealthRecordsSerializer(data=data)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
@@ -271,7 +290,10 @@ class HealthRecordsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class GetHealthRecordsView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, user_id):
         try:
             health_records = HealthRecord.objects.filter(user=user_id)
@@ -283,13 +305,18 @@ class GetHealthRecordsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class  UpdateHealthRecordsView(APIView):
+
+class UpdateHealthRecordsView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def put(self, request):
         try:
-            health_records = HealthRecord.objects.filter(id=request.data.get("id")).first()
+            health_records = HealthRecord.objects.filter(
+                id=request.data.get("id")).first()
             if health_records == None:
                 return Response("Health Record not found", status=status.HTTP_400_BAD_REQUEST)
-            serializer = HealthRecordsSerializer(health_records, data=request.data, partial=True)
+            serializer = HealthRecordsSerializer(
+                health_records, data=request.data, partial=True)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
@@ -299,7 +326,10 @@ class  UpdateHealthRecordsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class DeleteHealthRecordsView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def delete(self, request, id):
         try:
             health_records = HealthRecord.objects.filter(id=id).first()
@@ -312,3 +342,16 @@ class DeleteHealthRecordsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class GetAllSubscriptionSchemesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            subscription_schemes = SubscriptionSchemes.objects.all()
+            serializer = SubscriptionSchemesSerializer(subscription_schemes, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
