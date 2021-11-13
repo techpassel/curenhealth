@@ -28,9 +28,9 @@ class UserType(ChoiceEnum):
     HOSPITAL_STAFF = 'hospital_staff'
     PATHLAB_ADMIN = 'pathlab_admin'
     PATHLAB_STAFF = 'pathlab_staff'
-    SUPERADMIN = 'superadmin'
-    SUPERADMIN_STAFF = 'superadmin_staff'
-    SUPERADMIN_PHARMACY_STAFF = 'superadmin_pharmacy_staff'
+    ADMIN = 'superadmin'
+    ADMIN_STAFF = 'superadmin_staff'
+    ADMIN_PHARMACY_STAFF = 'superadmin_pharmacy_staff'
     # def __init__(self, *args, **kwargs):
     #     super().__init__(*args, **kwargs)
 
@@ -57,7 +57,7 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, first_name, last_name, phone, password, country_code="+91",
-                         usertype=UserType.SUPERADMIN):
+                         usertype=UserType.ADMIN):
 
         user = self.create_user(email, first_name, last_name, phone, password, country_code, usertype)
         return user

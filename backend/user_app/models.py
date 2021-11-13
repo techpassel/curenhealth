@@ -13,12 +13,12 @@ class SubscriptionTypes(ChoiceEnum):
     GOLD = 'gold'
 
 # We will have to manually create different schemes for different subscriptions and different validity
-class SubscriptionSchemes(TimeStampMixin):
+class SubscriptionScheme(TimeStampMixin):
     subscription_type = EnumChoiceField(SubscriptionTypes)
     validity = models.PositiveIntegerField()        #In days
     charges = models.FloatField()
 
-class UserDetails(models.Model):
+class UserDetail(models.Model):
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
@@ -30,14 +30,14 @@ class UserDetails(models.Model):
     blood_group = models.CharField(max_length=10)
     image = models.TextField()
 
-class UserSubscriptions(TimeStampMixin):
+class UserSubscription(TimeStampMixin):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    subscription = models.ForeignKey(SubscriptionSchemes, on_delete=models.SET_NULL, null=True)
+    subscription = models.ForeignKey(SubscriptionScheme, on_delete=models.SET_NULL, null=True)
     valid_from = models.DateField()
     valid_till = models.DateField()
     active = models.BooleanField(default=True)
 
-class HealthConditions(TimeStampMixin):
+class HealthCondition(TimeStampMixin):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -68,7 +68,7 @@ class HealthRecord(TimeStampMixin):
     measured_by = models.CharField(max_length=100, blank=True)
     report_url = models.TextField(blank=True)
 
-class AppointmentType(ChoiceEnum):
+class AppointmentTypes(ChoiceEnum):
     FRESH = 'fresh'
     FOLLOWUP = 'follow_up'
 
@@ -81,7 +81,7 @@ class Appointment(TimeStampMixin):
     slot = models.OneToOneField(ConsultationSlot, on_delete=models.SET_NULL, null=True, blank=True)
     status = EnumChoiceField(AppointmentStatus, default=AppointmentStatus.CREATED)
     status_update_remark = models.TextField()
-    appointment_type = EnumChoiceField(AppointmentType, default=AppointmentType.FRESH)
+    appointment_type = EnumChoiceField(AppointmentTypes, default=AppointmentTypes.FRESH)
     original_appointment_ref = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
     # original_appointment_ref will be used incase of "followup appointments"
 

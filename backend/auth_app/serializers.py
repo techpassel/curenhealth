@@ -32,9 +32,10 @@ class RegistrationSerializer(serializers.ModelSerializer):
             'first_name', instance.first_name)
         instance.last_name = validated_data.get(
             'last_name', instance.last_name)
-        instance.phone = validated_data.get('phone', instance.phone)
         instance.country_code = validated_data.get(
             'country_code', instance.country_code)
+        instance.phone = validated_data.get('phone', instance.phone)
+        instance.usertype = validated_data.get('usertype', instance.usertype)
         instance.is_active = validated_data.get(
             'is_active', instance.is_active)
         instance.is_email_verified = validated_data.get(

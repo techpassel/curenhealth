@@ -29,7 +29,7 @@ class OfferFor(ChoiceEnum):
     ALL = 'all'
     SPECIFIC = 'specific'
 
-class DiscountType(ChoiceEnum):
+class DiscountTypes(ChoiceEnum):
     IN_RUPEE = "in_rupee"
     IN_PERCENTAGE = "in_percentage"
 
@@ -38,14 +38,14 @@ class Coupon(TimeStampMixin):
     offer_on = ArrayField(EnumChoiceField(OfferOn))
     offer_for = ArrayField(EnumChoiceField(OfferFor))
     discount = models.PositiveIntegerField()
-    discount_type = EnumChoiceField(DiscountType)
+    discount_type = EnumChoiceField(DiscountTypes)
     minimun_spent_amount = models.PositiveIntegerField()
     specific_users = models.ManyToManyField(User, related_name="assigned_users")
     # We will use specific_users field if we want to create coupon for some specific user 
     # like in compensastion for some mistake or as reward for some achievement etc.
     valid_till = models.DateTimeField()
 
-class Department(ChoiceEnum):
+class Departments(ChoiceEnum):
     SALES = 'sales'
     MANAGEMENT = 'management'
     CUSTOMER_SUPPORT = 'customer_support'
@@ -99,14 +99,14 @@ class AdminStaffPosts(ChoiceEnum):
 
 default_role_permissions = [
     {
-        "department": Department.SALES,
+        "department": Departments.SALES,
         "post": AdminStaffPosts.BUSINESS_DEVELOPMENT_EXECUTIVE,
         "permissions": (AdminStaffPermissions.MANAGE_USERS,
                         AdminStaffPermissions.MANAGE_CLIENTS,
                         AdminStaffPermissions.ISSUE_COUPONS)
     },
     {
-        "department": Department.SALES,
+        "department": Departments.SALES,
         "post": AdminStaffPosts.SENIOR_BUSINESS_DEVELOPMENT_EXECUTIVE,
         "permissions": (AdminStaffPermissions.MANAGE_USERS,
                         AdminStaffPermissions.MANAGE_CLIENTS,
@@ -114,7 +114,7 @@ default_role_permissions = [
                         AdminStaffPermissions.ISSUE_COUPONS)
     },
     {
-        "department": Department.SALES,
+        "department": Departments.SALES,
         "post": AdminStaffPosts.SALES_MANAGER,
         "permissions": (AdminStaffPermissions.MANAGE_USERS,
                         AdminStaffPermissions.MANAGE_CLIENTS,
@@ -122,23 +122,23 @@ default_role_permissions = [
                         AdminStaffPermissions.ISSUE_COUPONS)
     },
     {
-        "department": Department.MANAGEMENT,
+        "department": Departments.MANAGEMENT,
         "post": AdminStaffPosts.OPERATION_MANAGEMENT_EXECUTIVE,
         "permissions": (AdminStaffPermissions.ALL)
     },
     {
-        "department": Department.MANAGEMENT,
+        "department": Departments.MANAGEMENT,
         "post": AdminStaffPosts.OPERATON_MANAGER,
         "permissions": (AdminStaffPermissions.ALL)
     },
     {
-        "department": Department.CUSTOMER_SUPPORT,
+        "department": Departments.CUSTOMER_SUPPORT,
         "post": AdminStaffPosts.CUSTOMER_SUPPORT_EXECUTIVE,
         "permissions": (AdminStaffPermissions.HANDLE_USER_REQUESTS,
                         AdminStaffPermissions.HANDLE_USER_COMPLAINTS)
     },
     {
-        "department": Department.CUSTOMER_SUPPORT,
+        "department": Departments.CUSTOMER_SUPPORT,
         "post": AdminStaffPosts.CLIENT_SUPPORT_EXECUTIVE,
         "permissions": (AdminStaffPermissions.HANDLE_CLIENT_REQUESTS,
                         AdminStaffPermissions.HANDLE_CLIENT_COMPLAINTS,
@@ -146,7 +146,7 @@ default_role_permissions = [
                         AdminStaffPermissions.HANDLE_USER_COMPLAINTS)
     },
     {
-        "department": Department.CUSTOMER_SUPPORT,
+        "department": Departments.CUSTOMER_SUPPORT,
         "post": AdminStaffPosts.SENOIR_SUPPORT_EXECUTIVE,
         "permissions": (AdminStaffPermissions.HANDLE_CLIENT_REQUESTS,
                         AdminStaffPermissions.HANDLE_CLIENT_COMPLAINTS,
@@ -156,7 +156,7 @@ default_role_permissions = [
                         AdminStaffPermissions.ISSUE_COUPONS)
     },
     {
-        "department": Department.CUSTOMER_SUPPORT,
+        "department": Departments.CUSTOMER_SUPPORT,
         "post": AdminStaffPosts.SENOIR_SUPPORT_EXECUTIVE,
         "permissions": (AdminStaffPermissions.HANDLE_CLIENT_REQUESTS,
                         AdminStaffPermissions.HANDLE_CLIENT_COMPLAINTS,
@@ -166,7 +166,7 @@ default_role_permissions = [
                         AdminStaffPermissions.ISSUE_COUPONS)
     },
     {
-        "department": Department.CUSTOMER_SUPPORT,
+        "department": Departments.CUSTOMER_SUPPORT,
         "post": AdminStaffPosts.RELATIONSHIP_MANAGER,
         "permissions": (AdminStaffPermissions.HANDLE_CLIENT_REQUESTS,
                         AdminStaffPermissions.HANDLE_CLIENT_COMPLAINTS,
@@ -178,7 +178,7 @@ default_role_permissions = [
                         AdminStaffPermissions.MANAGE_CLIENTS)
     },
     {
-        "department": Department.CUSTOMER_SUPPORT,
+        "department": Departments.CUSTOMER_SUPPORT,
         "post": AdminStaffPosts.RELATIONSHIP_MANAGER,
         "permissions": (AdminStaffPermissions.HANDLE_CLIENT_REQUESTS,
                         AdminStaffPermissions.HANDLE_CLIENT_COMPLAINTS,
@@ -190,17 +190,17 @@ default_role_permissions = [
                         AdminStaffPermissions.MANAGE_CLIENTS)
     },
     {
-        "department": Department.INVENTORY,
+        "department": Departments.INVENTORY,
         "post": AdminStaffPosts.INVENTORY_MANAGER,
         "permissions": (AdminStaffPermissions.MANAGE_PHARMACY_STOCK)
     },
     {
-        "department": Department.PHARMACY,
+        "department": Departments.PHARMACY,
         "post": AdminStaffPosts.EXECUTIVE_PHARMACIST,
         "permissions": (AdminStaffPermissions.HANDLE_PHARMACY_ORDERS)
     },
     {
-        "department": Department.PHARMACY,
+        "department": Departments.PHARMACY,
         "post": AdminStaffPosts.SENIOR_EXECUTIVE_PHARMACIST,
         "permissions": (AdminStaffPermissions.HANDLE_PHARMACY_ORDERS,
                         AdminStaffPermissions.HANDLE_PHARMACY_HELP_REQUESTS)
@@ -219,7 +219,7 @@ class AdminStaff(TimeStampMixin):
     image = models.TextField()
     post = EnumChoiceField(AdminStaffPosts)
     designation = models.CharField(max_length=256, blank=True)
-    department = EnumChoiceField(Department)
+    department = EnumChoiceField(Departments)
     permissions = ArrayField(EnumChoiceField(AdminStaffPermissions))
 
 class MedicineCompositionElement(models.Model):
@@ -256,7 +256,7 @@ class MedicineStock(TimeStampMixin):
     expiry_year = models.PositiveIntegerField()
     mrp = models.FloatField()
     discount = models.PositiveIntegerField()
-    discount_type = EnumChoiceField(DiscountType)
+    discount_type = EnumChoiceField(DiscountTypes)
 
 class MedicineOrder(TimeStampMixin):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
