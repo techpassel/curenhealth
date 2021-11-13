@@ -19,7 +19,7 @@ class SubscriptionSchemesView(APIView):
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
-            return Response(status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
@@ -27,7 +27,6 @@ class SubscriptionSchemesView(APIView):
 
     def put(self, request):
         try:
-            # Call this 'verify_admin' method in every "view" methods of admin app.
             verify_admin(request.user);
             id = request.data.get("id")
             scheme = SubscriptionScheme.objects.filter(id=id).first()
@@ -38,10 +37,24 @@ class SubscriptionSchemesView(APIView):
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
-            return Response(status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        
+class DeleteSubscriptionSchemesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, id):
+        try:
+            verify_admin(request.user);
+            scheme = SubscriptionScheme.objects.filter(id=id).first()
+            if scheme == None:
+                raise Exception("Subscription Scheme not found.")
+            scheme.delete()
+            return Response(status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)

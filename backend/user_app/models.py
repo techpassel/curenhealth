@@ -35,7 +35,7 @@ class UserSubscription(TimeStampMixin):
     subscription = models.ForeignKey(SubscriptionScheme, on_delete=models.SET_NULL, null=True)
     valid_from = models.DateField()
     valid_till = models.DateField()
-    active = models.BooleanField(default=True)
+    active = models.BooleanField(default=False)
 
 class HealthCondition(TimeStampMixin):
     user = models.ForeignKey(

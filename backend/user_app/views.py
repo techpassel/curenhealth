@@ -9,8 +9,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from auth_app.models import TokenType, User, VerificationToken
 from auth_app.serializers import RegistrationSerializer, VerificationTokenSerializer
-from user_app.serializers import HealthRecordsSerializer, SubscriptionSchemesSerializer, UserDetailsSerializer
-from user_app.models import HealthRecord, HealthRecordTypes, SubscriptionScheme, UserDetail
+from user_app.serializers import HealthRecordsSerializer, SubscriptionSchemesSerializer, UserDetailsSerializer, UserSubscriptionSerializer
+from user_app.models import HealthRecord, HealthRecordTypes, SubscriptionScheme, UserDetail, UserSubscription
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.core.mail import EmailMessage
@@ -310,7 +310,6 @@ class GetHealthRecordsView(APIView):
         try:
             health_records = HealthRecord.objects.filter(user=user_id)
             serializer = HealthRecordsSerializer(health_records, many=True)
-
             return Response(serializer.data, status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
@@ -333,14 +332,117 @@ class DeleteHealthRecordsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 class GetAllSubscriptionSchemesView(APIView):
+    #It's create,Update and Delete APIs are created in admin_app as only admin can perform those actions
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         try:
             subscription_schemes = SubscriptionScheme.objects.all()
             serializer = SubscriptionSchemesSerializer(subscription_schemes, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class UserSubscriptionView(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self, request):
+        try:
+            data = request.data
+            user_id = data.get("user_id")
+            user = User.objects.get(id=user_id)
+            del data["user_id"]
+            data["user"] = user.id
+            # We will check if any other subscription is active. If yes then we won't activate it currently
+            # Otherwise we will activate it.
+            active_subscriptions = UserSubscription.objects.filter(user=user_id, active=True)
+            if "active" in data and data["active"] == True:
+                data["valid_from"] = datetime.today().date()
+                for i in range(len(active_subscriptions)):
+                    serializer1 = UserSubscriptionSerializer(active_subscriptions[i], data={"active": False}, partial=True)
+                    if not serializer1.is_valid():
+                        raise Exception(generate_serializer_error(serializer1.errors))
+                    serializer1.save()
+            else:
+                if len(active_subscriptions) == 0:
+                    data["active"] = True
+                    data["valid_from"] = datetime.today().date()
+                else:
+                    data["active"] = False
+                    data["valid_from"] = active_subscriptions[0]["valid_till"] + timedelta(days=1)
+
+            subscription_scheme_id = data.get("subscription")
+            subscription_scheme = SubscriptionScheme.objects.get(id=subscription_scheme_id)
+            subscription_validity = subscription_scheme.validity
+            data["valid_till"] = data["valid_from"] + timedelta(days=subscription_validity)
+            serializer = UserSubscriptionSerializer(data=data)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ActivateUserSubscription(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        try:
+            id = request.data.get("id")
+            user_subscription = UserSubscription.objects.get(id=id)  
+            print(user_subscription,"user_subscription")    
+            user_id = user_subscription.user.id
+            if user_id != request.data.get("user_id"):
+                raise Exception("User information is incorrect.")
+            subscription_scheme_id = user_subscription.subscription.id
+            subscription_scheme = SubscriptionScheme.objects.get(id=subscription_scheme_id)
+            subscription_validity = subscription_scheme.validity
+            active_subscriptions = UserSubscription.objects.filter(user=user_id, active=True)
+            print(active_subscriptions,"active_subscriptions")
+            valid_from = datetime.today().date()
+            valid_till = valid_from + timedelta(days=subscription_validity)
+            serializer = UserSubscriptionSerializer(user_subscription, data={"valid_from": valid_from, "valid_till": valid_till, "active": True}, partial=True)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            # Deactivating all previously activated user-subscriptions
+            active_subscriptions = UserSubscription.objects.filter(user=user_id, active=True).exclude(id=id)
+            for i in range(len(active_subscriptions)):
+                serializer1 = UserSubscriptionSerializer(active_subscriptions[i], data={"active": False}, partial=True)
+                if not serializer1.is_valid():
+                    raise Exception(generate_serializer_error(serializer1.errors))
+                serializer1.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+class GetUserSubscriptionDetailsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, id):
+        try:
+            user_subscription = UserSubscription.objects.get(id=id)
+            serializer = UserSubscriptionSerializer(user_subscription)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetUsersAllSubscriptionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, user_id):
+        try:
+            user_subscription = UserSubscription.objects.filter(user=user_id)
+            serializer = UserSubscriptionSerializer(user_subscription, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
