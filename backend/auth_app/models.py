@@ -44,22 +44,22 @@ class UserManager(BaseUserManager):
     to create `User` objects.
     """
 
-    def create_user(self, email, first_name, last_name, phone, password, country_code="+91",
+    def create_user(self, email, first_name, last_name, phone, password, country_std_code="+91",
                     usertype=UserType.USER):
         if email is None:
             raise TypeError('Email is empty.')
         if password is None:
             raise TypeError('Password is empty.')
         user = self.model(email=self.normalize_email(email), first_name=first_name, last_name=last_name,
-                          phone=phone, country_code=country_code, usertype=usertype)
+                          phone=phone, country_std_code=country_std_code, usertype=usertype)
         user.set_password(password)
         user.save()
         return user
 
-    def create_superuser(self, email, first_name, last_name, phone, password, country_code="+91",
+    def create_superuser(self, email, first_name, last_name, phone, password, country_std_code="+91",
                          usertype=UserType.ADMIN):
 
-        user = self.create_user(email, first_name, last_name, phone, password, country_code, usertype)
+        user = self.create_user(email, first_name, last_name, phone, password, country_std_code, usertype)
         return user
 
 # Create your models here.
@@ -70,7 +70,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     email = models.EmailField(db_index=True, unique=True)
-    country_code = models.CharField(max_length=11)
+    country_std_code = models.CharField(max_length=11)
     phone = models.BigIntegerField()
     usertype = EnumChoiceField(UserType, default=UserType.USER)
     is_active = models.BooleanField(default=False)

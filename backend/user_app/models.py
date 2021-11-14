@@ -80,7 +80,7 @@ class Appointment(TimeStampMixin):
     consultation = models.ForeignKey(Consultation, on_delete=models.SET_NULL, null=True, blank=True)
     slot = models.OneToOneField(ConsultationSlot, on_delete=models.SET_NULL, null=True, blank=True)
     status = EnumChoiceField(AppointmentStatus, default=AppointmentStatus.CREATED)
-    status_update_remark = models.TextField()
+    status_update_remark = models.TextField(blank=True)
     appointment_type = EnumChoiceField(AppointmentTypes, default=AppointmentTypes.FRESH)
     original_appointment_ref = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
     # original_appointment_ref will be used incase of "followup appointments"

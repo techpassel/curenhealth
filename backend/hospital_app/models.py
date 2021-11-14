@@ -19,7 +19,7 @@ class Address(models.Model):
     address = models.TextField()
     landmark = models.TextField()
     zipcode = models.IntegerField()
-    country_code = models.CharField(max_length=11)
+    country_std_code = models.CharField(max_length=11)
     phone = models.BigIntegerField()
     is_default = models.BooleanField(default=False)
 

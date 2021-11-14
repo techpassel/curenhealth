@@ -15,7 +15,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=256)
     first_name = serializers.CharField(max_length=50)
     last_name = serializers.CharField(max_length=50)
-    country_code = serializers.CharField(max_length=11, required=False)
+    country_std_code = serializers.CharField(max_length=11, required=False)
     phone = serializers.IntegerField()
     usertype = EnumChoiceField(UserType)
     is_active = serializers.BooleanField(required=False)
@@ -32,8 +32,8 @@ class RegistrationSerializer(serializers.ModelSerializer):
             'first_name', instance.first_name)
         instance.last_name = validated_data.get(
             'last_name', instance.last_name)
-        instance.country_code = validated_data.get(
-            'country_code', instance.country_code)
+        instance.country_std_code = validated_data.get(
+            'country_std_code', instance.country_std_code)
         instance.phone = validated_data.get('phone', instance.phone)
         instance.usertype = validated_data.get('usertype', instance.usertype)
         instance.is_active = validated_data.get(
@@ -51,7 +51,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         # List all of the fields that could possibly be included in a request or response
-        fields = ('id', 'email', 'first_name', 'last_name', 'country_code', 'phone',
+        fields = ('id', 'email', 'first_name', 'last_name', 'country_std_code', 'phone',
                   'usertype', 'password', 'is_active', 'is_email_verified', 'is_phone_verified')
         # If you want to include all fields then you can define it as follows also.
         # fields = ('__all__')
@@ -62,7 +62,7 @@ class LoginSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=128, write_only=True)
     first_name = serializers.CharField(max_length=50, required=False)
     last_name = serializers.CharField(max_length=50, required=False)
-    country_code = serializers.CharField(max_length=11, required=False)
+    country_std_code = serializers.CharField(max_length=11, required=False)
     phone = serializers.IntegerField(required=False)
     usertype = EnumChoiceField(UserType)
     token = serializers.CharField(max_length=255, read_only=True)
@@ -109,7 +109,7 @@ class LoginSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         # List all of the fields that could possibly be included in a request or response
-        fields = ('id', 'email', 'first_name', 'last_name', 'country_code', 'phone',
+        fields = ('id', 'email', 'first_name', 'last_name', 'country_std_code', 'phone',
                   'usertype', 'password', 'token', 'is_email_verified', 'is_phone_verified')
         # If you want to include all fields then you can define it as follows also.
         # fields = ('__all__')

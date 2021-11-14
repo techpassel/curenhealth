@@ -1,9 +1,7 @@
 from datetime import datetime, timedelta
-from functools import partial
 from django.contrib.auth import authenticate
 from django.db.utils import IntegrityError
 from rest_framework import status
-from rest_framework.decorators import permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -17,7 +15,6 @@ from django.core.mail import EmailMessage
 from utils.common_methods import generate_serializer_error
 import secrets
 import pytz
-import json
 # Create your views here.
 
 
@@ -394,8 +391,7 @@ class ActivateUserSubscription(APIView):
     def put(self, request):
         try:
             id = request.data.get("id")
-            user_subscription = UserSubscription.objects.get(id=id)  
-            print(user_subscription,"user_subscription")    
+            user_subscription = UserSubscription.objects.get(id=id) 
             user_id = user_subscription.user.id
             if user_id != request.data.get("user_id"):
                 raise Exception("User information is incorrect.")
@@ -403,7 +399,6 @@ class ActivateUserSubscription(APIView):
             subscription_scheme = SubscriptionScheme.objects.get(id=subscription_scheme_id)
             subscription_validity = subscription_scheme.validity
             active_subscriptions = UserSubscription.objects.filter(user=user_id, active=True)
-            print(active_subscriptions,"active_subscriptions")
             valid_from = datetime.today().date()
             valid_till = valid_from + timedelta(days=subscription_validity)
             serializer = UserSubscriptionSerializer(user_subscription, data={"valid_from": valid_from, "valid_till": valid_till, "active": True}, partial=True)
@@ -448,3 +443,4 @@ class GetUsersAllSubscriptionView(APIView):
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

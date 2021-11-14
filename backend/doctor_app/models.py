@@ -9,27 +9,29 @@ from django.contrib.postgres.fields import ArrayField
 class Speciality(TimeStampMixin):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
-    relates_speciality = models.ForeignKey(
+    related_speciality = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True)
 
 class Qualification(models.Model):
+    doctor = models.ForeignKey("Doctor", on_delete=models.CASCADE)
     degree = models.CharField(max_length=256)
     institute = models.CharField(max_length=256)
-    passing_year = models.IntegerField()
-    remark = models.TextField()
+    passing_year = models.IntegerField(null=True, blank=True)
+    remark = models.TextField(blank=True)
 
 class Doctor(TimeStampMixin):
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
-        primary_key=True,
+        primary_key=False,
     )
     dob = models.DateField()
-    image = models.TextField()
+    image = models.TextField(blank=True)
+    # image = models.ImageField(User, null=True, blank=True, upload_to="images/")
     practice_start_year = models.IntegerField()
-    specialitities = models.ManyToManyField(Speciality)
+    # ForeignKey is used for ManyToOne relationship 
+    specialities = models.ManyToManyField(Speciality)
     hospitals = models.ManyToManyField(Hospital)
-    qualifications = models.ForeignKey(Qualification, on_delete=models.SET_NULL, null=True, blank=True)
     details = models.TextField(blank=True)
     additional_details = models.TextField(blank=True)
 
@@ -38,14 +40,14 @@ class ConsultationType(ChoiceEnum):
     IN_HOUSE = 'in_house'
 
 class Consultation(TimeStampMixin):
-    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name="consultation_doctor")
+    doctor_user = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name="consultation_doctor")
     consultation_type = EnumChoiceField(ConsultationType)
     hospital = models.ForeignKey(Hospital, on_delete=models.SET_NULL, null=True, blank=True, related_name="consultation_hospital")
-    location = models.TextField()
+    location = models.TextField(blank=True)
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name="consultation_address")
     charge = models.FloatField()
-    remark = models.TextField()
-    slot_duration = models.IntegerField()
+    note = models.TextField(blank=True)
+    avg_consultation_time = models.IntegerField()
     # It can be used in cases like if doctor want to mention if he see only followup patients in this consultation.
 
 class ConsultationDefalutTiming(TimeStampMixin):
@@ -66,7 +68,8 @@ class SlotAvailablity(ChoiceEnum):
 class ConsultationSlot(TimeStampMixin):
     consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
     date = models.DateField()
-    slots = models.CharField(max_length=15)
+    slot = models.CharField(max_length=15)
+    # Slot example = 10:15am (In this case if 'avg_consultation_time' is 15 mins then next slot will be 10:30am) 
     availablity = EnumChoiceField(SlotAvailablity)
     # We will store slot value inthe form of "00:30AM", "04:45PM" etc.(minutes in multiple of consultation's slot_duration).
     # We will run cron job every sunday night and auto set ConsultationSlot based on ConsultationDefalutTiming and consultation's slot_duration.
