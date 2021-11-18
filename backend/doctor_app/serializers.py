@@ -14,21 +14,29 @@ class SpecialitySerializer(serializers.ModelSerializer):
 class QualificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Qualification
+        fields = ["id", "doctor", "degree", "institute", "passing_year", "remark"]
+
+class DoctorQualificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Qualification
         fields = ["id", "degree", "institute", "passing_year", "remark"]
 
 class DoctorSerializer(serializers.ModelSerializer):
-    qualification_set = QualificationSerializer(many=True)
+    qualification_set = DoctorQualificationSerializer(many=True)
 
     def update(self, instance, validated_data):
-        qualifications = validated_data.pop('qualification_set', [])
+        specialities = validated_data.pop('specialities',[])
+        hospitals = validated_data.pop('hospitals',[])
         instance.user = validated_data.get('user', instance.user)
         instance.dob = validated_data.get('dob', instance.dob)
         instance.image = validated_data.get('image', instance.image)
         instance.practice_start_year = validated_data.get('practice_start_year', instance.practice_start_year)
         instance.details = validated_data.get('details', instance.details)
         instance.additional_details = validated_data.get('additional_details', instance.additional_details)        
-        for qual in qualifications:
-            print(qual)
+        # for s_instance in specialities:
+        #     instance.specialities.update_or_create(s_instance)
+        # for h_instance in hospitals:
+        #     instance.hospitals.update_or_create(h_instance)
         instance.save()
         return instance
     

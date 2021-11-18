@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from hospital_app.serializers import HospitalSerializer
 from doctor_app.serializers import ConsultationSerializer, DoctorSerializer, QualificationSerializer, SpecialitySerializer
 from hospital_app.models import Address, Hospital
-from doctor_app.models import Doctor, Speciality
+from doctor_app.models import Doctor, Qualification, Speciality
 from utils.common_methods import generate_serializer_error
 
 # Create your views here.
@@ -61,6 +61,18 @@ class DoctorView(APIView):
             doctor = Doctor.objects.filter(id=id).first()
             if(doctor == None):
                 return Response("Doctor not found", status=status.HTTP_400_BAD_REQUEST)
+            for qual in data["qualification_set"]:
+                q_serializer = None
+                if "id" in qual:
+                    qual_id = qual.get("id")
+                    qualification = Qualification.objects.get(id=qual_id)
+                    q_serializer = QualificationSerializer(qualification, data=qual, partial=True)
+                else:
+                    qual["doctor"] = doctor.id
+                    q_serializer = QualificationSerializer(data=qual, partial=True)
+                if not q_serializer.is_valid():
+                    raise Exception(generate_serializer_error(q_serializer.errors))
+                q_serializer.save()
             serializer = DoctorSerializer(doctor, data=data, partial=True)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
