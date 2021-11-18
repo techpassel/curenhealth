@@ -2,9 +2,9 @@ from django.db import models
 from django.db.models import fields
 from rest_framework import serializers
 from hospital_app.models import Hospital
-from hospital_app.serializers import HospitalSerializer
+from hospital_app.serializers import HospitalSerializer, HospitalListSerializer
 from doctor_app.models import Consultation, ConsultationDefalutTiming, ConsultationSlot, Doctor, Qualification, Speciality
-
+from user_app.serializers import UserSerializer
 
 class SpecialitySerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,11 +21,20 @@ class DoctorQualificationSerializer(serializers.ModelSerializer):
         model = Qualification
         fields = ["id", "degree", "institute", "passing_year", "remark"]
 
+class DoctorsListSerializer(serializers.ModelSerializer):
+    user_details = UserSerializer(source="user", read_only=True)
+    hospitals_details = HospitalListSerializer(source="hospitals", many=True, read_only=True)
+
+    class Meta:
+        model = Doctor
+        fields = ["id", "user", "user_details", "dob", "image", "practice_start_year", "hospitals", "hospitals_details", "details", "additional_details"]    
+
 class DoctorSerializer(serializers.ModelSerializer):
     qualification_set = DoctorQualificationSerializer(many=True)
-    specialities = serializers.PrimaryKeyRelatedField(queryset=Speciality.objects.all(), many=True)
-    hospitals = serializers.PrimaryKeyRelatedField(queryset=Hospital.objects.all(), many=True)
-
+    specialities_details = SpecialitySerializer(source="specialities", many=True, read_only=True)
+    hospitals_details = HospitalSerializer(source="hospitals", many=True, read_only=True)
+    user_details = UserSerializer(source="user", read_only=True)
+    
     def update(self, instance, validated_data):
         specialities = validated_data.pop('specialities',[])
         hospitals = validated_data.pop('hospitals',[])
@@ -54,8 +63,8 @@ class DoctorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Doctor
-        fields = ["id", "user", "dob", "image", "practice_start_year", "qualification_set",
-                  "specialities", "hospitals", "details", "additional_details"]
+        fields = ["id", "user", "user_details", "dob", "image", "practice_start_year", "qualification_set",
+                  "specialities", "specialities_details", "hospitals", "hospitals_details", "details", "additional_details"]
 
 class ConsultationSerializer(serializers.ModelSerializer):
     class Meta:

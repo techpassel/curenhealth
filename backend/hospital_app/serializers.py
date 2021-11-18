@@ -13,14 +13,18 @@ class AddressSerializer(serializers.ModelSerializer):
         fields = ['id', 'city', 'city_detail', 'area', 'address', 'landmark',
                   'zipcode', 'country_std_code', 'phone', 'is_default']
 
+class HospitalListSerializer(serializers.ModelSerializer):
+    location = serializers.SerializerMethodField('get_hospital_area')
+
+    def get_hospital_area(self, obj):
+        return obj.address.area
+    class Meta:
+        model = Hospital
+        fields = ['id', 'hospital_name', 'location']
+
 class HospitalSerializer(serializers.ModelSerializer):
     address_details = AddressSerializer(source='address', read_only=True)
 
     class Meta:
         model = Hospital
         fields = ['id', 'hospital_admin', 'hospital_name', 'address', 'address_details', 'details', 'contact_details', 'additional_details']
-        extra_kwargs = {
-            'hospital_admin': {'validators': []},
-            'address': {'validators': []},
-            'hospital_name': {'validators': []}
-        }

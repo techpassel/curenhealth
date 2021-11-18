@@ -1,9 +1,7 @@
 from django.db.models import fields
 from rest_framework import serializers
 from enumchoicefield import EnumChoiceField
-
 from auth_app.models import User
-
 from .models import Appointment, HealthRecord, HealthRecordTypes, SubscriptionScheme, UserDetail, UserSubscription
 
 
@@ -15,8 +13,7 @@ class UserDetailsSerializer(serializers.ModelSerializer):
 
 
 class HealthRecordsSerializer(serializers.ModelSerializer):
-    added_by_name = serializers.CharField(
-        read_only=True, source="added_by.get_full_name")
+    added_by_name = serializers.CharField(read_only=True, source="added_by.get_full_name")
     type = EnumChoiceField(HealthRecordTypes)
 
     class Meta:
@@ -28,7 +25,7 @@ class HealthRecordsSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name']
+        fields = ['id', 'first_name', 'last_name', 'email']
 
 
 class SubscriptionSchemesSerializer(serializers.ModelSerializer):
