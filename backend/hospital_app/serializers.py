@@ -13,7 +13,7 @@ class AddressSerializer(serializers.ModelSerializer):
         fields = ['id', 'city', 'city_detail', 'area', 'address', 'landmark',
                   'zipcode', 'country_std_code', 'phone', 'is_default']
 
-class HospitalListSerializer(serializers.ModelSerializer):
+class HospitalBriefSerializer(serializers.ModelSerializer):
     location = serializers.SerializerMethodField('get_hospital_area')
 
     def get_hospital_area(self, obj):

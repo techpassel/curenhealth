@@ -2,9 +2,14 @@ from django.db import models
 from django.db.models import fields
 from rest_framework import serializers
 from hospital_app.models import Hospital
-from hospital_app.serializers import HospitalSerializer, HospitalListSerializer
+from hospital_app.serializers import HospitalSerializer, HospitalBriefSerializer
 from doctor_app.models import Consultation, ConsultationDefalutTiming, ConsultationSlot, Doctor, Qualification, Speciality
 from user_app.serializers import UserSerializer
+
+class SpecialityBriefSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Speciality
+        fields = ["id", "name"]
 
 class SpecialitySerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,13 +26,13 @@ class DoctorQualificationSerializer(serializers.ModelSerializer):
         model = Qualification
         fields = ["id", "degree", "institute", "passing_year", "remark"]
 
-class DoctorsListSerializer(serializers.ModelSerializer):
+class DoctorsBriefSerializer(serializers.ModelSerializer):
     user_details = UserSerializer(source="user", read_only=True)
-    hospitals_details = HospitalListSerializer(source="hospitals", many=True, read_only=True)
-
+    hospitals_details = HospitalBriefSerializer(source="hospitals", many=True, read_only=True)
+    specialities_details = SpecialityBriefSerializer(source="specialities", many=True, read_only=True)
     class Meta:
         model = Doctor
-        fields = ["id", "user", "user_details", "dob", "image", "practice_start_year", "hospitals", "hospitals_details", "details", "additional_details"]    
+        fields = ["id", "user", "user_details", "dob", "image", "practice_start_year", "hospitals_details", "specialities_details", "details", "additional_details"]    
 
 class DoctorSerializer(serializers.ModelSerializer):
     qualification_set = DoctorQualificationSerializer(many=True)
@@ -36,16 +41,18 @@ class DoctorSerializer(serializers.ModelSerializer):
     user_details = UserSerializer(source="user", read_only=True)
     
     def update(self, instance, validated_data):
-        specialities = validated_data.pop('specialities',[])
-        hospitals = validated_data.pop('hospitals',[])
+        specialities = validated_data.pop('specialities', None)
+        hospitals = validated_data.pop('hospitals', None)
         instance.user = validated_data.get('user', instance.user)
         instance.dob = validated_data.get('dob', instance.dob)
         instance.image = validated_data.get('image', instance.image)
         instance.practice_start_year = validated_data.get('practice_start_year', instance.practice_start_year)
         instance.details = validated_data.get('details', instance.details)
         instance.additional_details = validated_data.get('additional_details', instance.additional_details)        
-        instance.specialities.set(specialities)
-        instance.hospitals.set(hospitals)
+        if specialities != None:
+            instance.specialities.set(specialities)
+        if hospitals != None:
+            instance.hospitals.set(hospitals)
         instance.save()
         return instance
     
