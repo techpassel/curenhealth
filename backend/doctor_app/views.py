@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from hospital_app.serializers import HospitalSerializer
 from doctor_app.serializers import ConsultationSerializer, DoctorSerializer, QualificationSerializer, SpecialitySerializer
 from hospital_app.models import Address, Hospital
-from doctor_app.models import Speciality
+from doctor_app.models import Doctor, Speciality
 from utils.common_methods import generate_serializer_error
 
 # Create your views here.
@@ -31,10 +31,37 @@ class SpecialityView(APIView):
 
 class DoctorView(APIView):
     permission_classes = [IsAuthenticated]
+    def get(self, request):
+        try:
+            doctors = Doctor.objects.all()
+            serializer = DoctorSerializer(doctors, many=True) 
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     def post(self, request):
         try:
             data = request.data
             serializer = DoctorSerializer(data=data)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def put(self, request):
+        try:
+            data = request.data
+            id = data.get("id")
+            doctor = Doctor.objects.filter(id=id).first()
+            if(doctor == None):
+                return Response("Doctor not found", status=status.HTTP_400_BAD_REQUEST)
+            serializer = DoctorSerializer(doctor, data=data, partial=True)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()

@@ -16,9 +16,21 @@ class QualificationSerializer(serializers.ModelSerializer):
         model = Qualification
         fields = ["id", "degree", "institute", "passing_year", "remark"]
 
-
 class DoctorSerializer(serializers.ModelSerializer):
     qualification_set = QualificationSerializer(many=True)
+
+    def update(self, instance, validated_data):
+        qualifications = validated_data.pop('qualification_set', [])
+        instance.user = validated_data.get('user', instance.user)
+        instance.dob = validated_data.get('dob', instance.dob)
+        instance.image = validated_data.get('image', instance.image)
+        instance.practice_start_year = validated_data.get('practice_start_year', instance.practice_start_year)
+        instance.details = validated_data.get('details', instance.details)
+        instance.additional_details = validated_data.get('additional_details', instance.additional_details)        
+        for qual in qualifications:
+            print(qual)
+        instance.save()
+        return instance
     
     def create(self, validated_data):
         qualifications = validated_data.pop('qualification_set')
