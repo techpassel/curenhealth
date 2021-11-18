@@ -23,6 +23,8 @@ class DoctorQualificationSerializer(serializers.ModelSerializer):
 
 class DoctorSerializer(serializers.ModelSerializer):
     qualification_set = DoctorQualificationSerializer(many=True)
+    specialities = serializers.PrimaryKeyRelatedField(queryset=Speciality.objects.all(), many=True)
+    hospitals = serializers.PrimaryKeyRelatedField(queryset=Hospital.objects.all(), many=True)
 
     def update(self, instance, validated_data):
         specialities = validated_data.pop('specialities',[])
@@ -33,10 +35,8 @@ class DoctorSerializer(serializers.ModelSerializer):
         instance.practice_start_year = validated_data.get('practice_start_year', instance.practice_start_year)
         instance.details = validated_data.get('details', instance.details)
         instance.additional_details = validated_data.get('additional_details', instance.additional_details)        
-        # for s_instance in specialities:
-        #     instance.specialities.update_or_create(s_instance)
-        # for h_instance in hospitals:
-        #     instance.hospitals.update_or_create(h_instance)
+        instance.specialities.set(specialities)
+        instance.hospitals.set(hospitals)
         instance.save()
         return instance
     
@@ -47,10 +47,8 @@ class DoctorSerializer(serializers.ModelSerializer):
         doctor = Doctor.objects.create(**validated_data)
         for qual in qualifications:
             Qualification.objects.create(doctor=doctor, **qual)
-        for s_instance in specialities:
-            doctor.specialities.add(s_instance)
-        for h_instance in hospitals:
-            doctor.hospitals.add(h_instance)
+        doctor.specialities.set(specialities)
+        doctor.hospitals.set(hospitals)
         doctor.save()
         return doctor
 
