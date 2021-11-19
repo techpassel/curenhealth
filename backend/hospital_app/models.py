@@ -15,7 +15,7 @@ class City(TimeStampMixin):
 class Address(models.Model):
     city = models.ForeignKey(
         City, on_delete=models.SET_NULL, null=True, blank=True)
-    area = models.CharField(max_length=100)
+    location = models.CharField(max_length=100)
     address = models.TextField()
     landmark = models.TextField()
     zipcode = models.IntegerField()

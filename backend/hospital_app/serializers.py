@@ -10,14 +10,14 @@ class AddressSerializer(serializers.ModelSerializer):
     city_detail = CitySerializer(source='city', read_only=True)
     class Meta:
         model = Address
-        fields = ['id', 'city', 'city_detail', 'area', 'address', 'landmark',
+        fields = ['id', 'city', 'city_detail', 'location', 'address', 'landmark',
                   'zipcode', 'country_std_code', 'phone', 'is_default']
 
 class HospitalBriefSerializer(serializers.ModelSerializer):
-    location = serializers.SerializerMethodField('get_hospital_area')
+    location = serializers.SerializerMethodField('get_hospital_location')
 
-    def get_hospital_area(self, obj):
-        return obj.address.area
+    def get_hospital_location(self, obj):
+        return obj.address.location
     class Meta:
         model = Hospital
         fields = ['id', 'hospital_name', 'location']

@@ -7,6 +7,8 @@ urlpatterns = [
     path('<int:id>', views.GetDoctorDetails.as_view()),
     path('search-doctors/', views.SearchDoctors.as_view()),
     path('speciality/', views.SpecialityView.as_view()),
+    path('consultation/', views.ConsultationView.as_view()),
+    path('search-consultation/', views.SearchConsultations.as_view())
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

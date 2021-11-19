@@ -43,11 +43,11 @@ class Consultation(TimeStampMixin):
     doctor_user = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name="consultation_doctor")
     consultation_type = EnumChoiceField(ConsultationType)
     hospital = models.ForeignKey(Hospital, on_delete=models.SET_NULL, null=True, blank=True, related_name="consultation_hospital")
-    location = models.TextField(blank=True)
+    location = models.CharField(max_length=256, blank=True)
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name="consultation_address")
-    charge = models.FloatField()
+    consultation_fee = models.FloatField()
     note = models.TextField(blank=True)
-    avg_consultation_time = models.IntegerField()
+    avg_slot_duration = models.IntegerField()
     # It can be used in cases like if doctor want to mention if he see only followup patients in this consultation.
 
 class ConsultationDefalutTiming(TimeStampMixin):

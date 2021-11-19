@@ -1,3 +1,4 @@
+from functools import partial
 from rest_framework.decorators import permission_classes
 from rest_framework.views import APIView
 from rest_framework import status
@@ -6,10 +7,12 @@ from rest_framework.response import Response
 from hospital_app.serializers import HospitalSerializer
 from doctor_app.serializers import ConsultationSerializer, DoctorSerializer, DoctorsBriefSerializer, QualificationSerializer, SpecialitySerializer
 from hospital_app.models import Address, City, Hospital
-from doctor_app.models import Doctor, Qualification, Speciality
+from doctor_app.models import Consultation, Doctor, Qualification, Speciality, ConsultationType
 from utils.common_methods import generate_serializer_error
 
 # Create your views here.
+
+
 class SpecialityView(APIView):
     permission_classes = [IsAuthenticated, ]
 
@@ -91,6 +94,7 @@ class DoctorView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class GetDoctorDetails(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -104,44 +108,52 @@ class GetDoctorDetails(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class SearchDoctors(APIView):
     def get(self, request):
         try:
-            speciality = request.query_params['speciality'] if 'speciality' in request.query_params and request.query_params['speciality'] !="" else None
-            hospital = request.query_params['hospital'] if 'hospital' in request.query_params and request.query_params['hospital'] !="" else None
-            city = request.query_params['city'] if 'city' in request.query_params and request.query_params['city'] !="" else None
-            area = request.query_params['area'] if 'area' in request.query_params and request.query_params['area'] !="" else None
+            speciality = request.query_params['speciality'] if 'speciality' in request.query_params and request.query_params['speciality'] != "" else None
+            hospital = request.query_params['hospital'] if 'hospital' in request.query_params and request.query_params['hospital'] != "" else None
+            city = request.query_params['city'] if 'city' in request.query_params and request.query_params['city'] != "" else None
+            location = request.query_params['location'] if 'location' in request.query_params and request.query_params['location'] != "" else None
             doctors = None
             if speciality != None:
                 doctors = None
                 if hospital == None:
                     if city == None:
-                        doctors = Doctor.objects.filter(specialities=speciality)                        
-                    else :
-                        if area == None:
-                            doctors = Doctor.objects.filter(specialities=speciality, hospitals__address__city=city).distinct()
+                        doctors = Doctor.objects.filter(
+                            specialities=speciality)
+                    else:
+                        if location == None:
+                            doctors = Doctor.objects.filter(
+                                specialities=speciality, hospitals__address__city=city).distinct()
                             # Added "distinct" here as sometimes it was returning same object multiple times.
                         else:
-                            doctors = Doctor.objects.filter(specialities=speciality, hospitals__address__city=city, hospitals__address__area=area).distinct()
+                            doctors = Doctor.objects.filter(
+                                specialities=speciality, hospitals__address__city=city, hospitals__address__location=location).distinct()
 
-                else :
-                    doctors = Doctor.objects.filter(specialities=speciality, hospitals=hospital)
-            else :
+                else:
+                    doctors = Doctor.objects.filter(
+                        specialities=speciality, hospitals=hospital)
+            else:
                 if hospital != None:
                     doctors = Doctor.objects.filter(hospitals=hospital)
                 else:
                     if city != None:
-                        if area == None:
-                            doctors = Doctor.objects.filter(hospitals__address__city=city).distinct()
+                        if location == None:
+                            doctors = Doctor.objects.filter(
+                                hospitals__address__city=city).distinct()
                             # Added "distinct" here as sometimes it was returning same object multiple times.
                         else:
-                            doctors = Doctor.objects.filter(hospitals__address__city=city, hospitals__address__area=area).distinct()
+                            doctors = Doctor.objects.filter(
+                                hospitals__address__city=city, hospitals__address__location=location).distinct()
             serializer = DoctorsBriefSerializer(doctors, many=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class ConsultationView(APIView):
     permission_classes = [IsAuthenticated]
@@ -152,17 +164,77 @@ class ConsultationView(APIView):
             if ("hospital_id" in data) and (data["hospital_id"] != (None or "")):
                 hospital_id = data.get("hospital_id")
                 hospital = Hospital.objects.get(id=hospital_id)
-                data["hospital"] = hospital
+                data["hospital"] = hospital.id
+            if "hospital_id" in data:
                 del data["hospital_id"]
             if ("address_id" in data) and (data["address_id"] != (None or "")):
                 address_id = data.get("address_id")
                 address = Address.objects.get(id=address_id)
-                data["address"] = address
-                del data["hospital_id"]
-            serializer = ConsultationSerializer(data=data)
+                data["address"] = address.id
+            if "address_id" in data:
+                del data["address_id"]
+            serializer = ConsultationSerializer(data=data, partial=True)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def put(self, request):
+        try:
+            data = request.data
+            id = data.get("id")
+            consultation = Consultation.objects.filter(id=id).first()
+            if consultation == None:
+                return Response("Consultation not found", status=status.HTTP_400_BAD_REQUEST)
+            if ("hospital_id" in data) and (data["hospital_id"] != (None or "")):
+                hospital_id = data.get("hospital_id")
+                hospital = Hospital.objects.get(id=hospital_id)
+                data["hospital"] = hospital.id
+            if "hospital_id" in data:
+                del data["hospital_id"]
+            if ("address_id" in data) and (data["address_id"] != (None or "")):
+                address_id = data.get("address_id")
+                address = Address.objects.get(id=address_id)
+                data["address"] = address.id
+            if "address_id" in data:
+                del data["address_id"]
+            serializer = ConsultationSerializer(
+                consultation, data=data, partial=True)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SearchConsultations(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            doctor_user_id = request.query_params['doctor'] if 'doctor' in request.query_params and request.query_params['doctor'] != "" else None
+            consultation_type = request.query_params[
+                'type'] if 'type' in request.query_params and request.query_params['type'] != "" else None
+            consultations = None
+            if consultation_type == None:
+                consultations = Consultation.objects.filter(
+                    doctor_user=doctor_user_id)
+            else:
+                ct = None
+                # Method to get value of EnumChoiceFields to use in model objects.
+                for r in ConsultationType:
+                    if ConsultationType[consultation_type] == r:
+                        ct = r
+                consultations = Consultation.objects.filter(
+                    doctor_user=doctor_user_id, consultation_type=ct)
+            serializer = ConsultationSerializer(consultations, many=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
