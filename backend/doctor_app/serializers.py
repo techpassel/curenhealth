@@ -26,20 +26,32 @@ class DoctorQualificationSerializer(serializers.ModelSerializer):
         model = Qualification
         fields = ["id", "degree", "institute", "passing_year", "remark"]
 
+
+class ConsultationSerializer(serializers.ModelSerializer):
+    address_details = AddressSerializer(source="address", read_only=True)
+    class Meta:
+        model = Consultation
+        fields = ["id", "doctor", "consultation_type", "hospital",
+                  "location", "address", "address_details", "consultation_fee", "note", "avg_slot_duration"]
+
+
 class DoctorsBriefSerializer(serializers.ModelSerializer):
     user_details = UserSerializer(source="user", read_only=True)
     hospitals_details = HospitalBriefSerializer(source="hospitals", many=True, read_only=True)
     specialities_details = SpecialityBriefSerializer(source="specialities", many=True, read_only=True)
+    consultations = ConsultationSerializer(many=True)
     class Meta:
         model = Doctor
-        fields = ["id", "user", "user_details", "dob", "image", "practice_start_year", "hospitals_details", "specialities_details", "details", "additional_details"]    
+        fields = ["id", "user", "user_details", "dob", "image", "practice_start_year", "hospitals_details", "specialities_details", "details", "additional_details", "consultations"]    
+
 
 class DoctorSerializer(serializers.ModelSerializer):
     qualification_set = DoctorQualificationSerializer(many=True)
     specialities_details = SpecialitySerializer(source="specialities", many=True, read_only=True)
     hospitals_details = HospitalSerializer(source="hospitals", many=True, read_only=True)
     user_details = UserSerializer(source="user", read_only=True)
-    
+    consultations = ConsultationSerializer(source="consultation_doctor", many=True)
+
     def update(self, instance, validated_data):
         specialities = validated_data.pop('specialities', None)
         hospitals = validated_data.pop('hospitals', None)
@@ -71,15 +83,7 @@ class DoctorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Doctor
         fields = ["id", "user", "user_details", "dob", "image", "practice_start_year", "qualification_set",
-                  "specialities", "specialities_details", "hospitals", "hospitals_details", "details", "additional_details"]
-
-
-class ConsultationSerializer(serializers.ModelSerializer):
-    address_details = AddressSerializer(source="address", read_only=True)
-    class Meta:
-        model = Consultation
-        fields = ["id", "doctor_user", "consultation_type", "hospital",
-                  "location", "address", "address_details", "consultation_fee", "note", "avg_slot_duration"]
+                  "specialities", "specialities_details", "hospitals", "hospitals_details", "consultations", "details", "additional_details"]
 
 
 class ConsultationDefalutTimingSerializer(serializers.ModelSerializer):

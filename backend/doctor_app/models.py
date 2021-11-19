@@ -40,7 +40,7 @@ class ConsultationType(ChoiceEnum):
     IN_HOUSE = 'in_house'
 
 class Consultation(TimeStampMixin):
-    doctor_user = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name="consultation_doctor")
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name="consultation_doctor")
     consultation_type = EnumChoiceField(ConsultationType)
     hospital = models.ForeignKey(Hospital, on_delete=models.SET_NULL, null=True, blank=True, related_name="consultation_hospital")
     location = models.CharField(max_length=256, blank=True)

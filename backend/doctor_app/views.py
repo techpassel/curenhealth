@@ -219,13 +219,13 @@ class SearchConsultations(APIView):
 
     def get(self, request):
         try:
-            doctor_user_id = request.query_params['doctor'] if 'doctor' in request.query_params and request.query_params['doctor'] != "" else None
+            doctor_id = request.query_params['doctor'] if 'doctor' in request.query_params and request.query_params['doctor'] != "" else None
             consultation_type = request.query_params[
                 'type'] if 'type' in request.query_params and request.query_params['type'] != "" else None
             consultations = None
             if consultation_type == None:
                 consultations = Consultation.objects.filter(
-                    doctor_user=doctor_user_id)
+                    doctor=doctor_id)
             else:
                 ct = None
                 # Method to get value of EnumChoiceFields to use in model objects.
@@ -233,7 +233,7 @@ class SearchConsultations(APIView):
                     if ConsultationType[consultation_type] == r:
                         ct = r
                 consultations = Consultation.objects.filter(
-                    doctor_user=doctor_user_id, consultation_type=ct)
+                    doctor=doctor_id, consultation_type=ct)
             serializer = ConsultationSerializer(consultations, many=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except (AssertionError, Exception) as err:
