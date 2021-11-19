@@ -51,7 +51,7 @@ class Consultation(TimeStampMixin):
     # It can be used in cases like if doctor want to mention if he see only followup patients in this consultation.
 
 class ConsultationDefalutTiming(TimeStampMixin):
-    consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
+    consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE, related_name="timing_related_consultation")
     day_name = EnumChoiceField(Weekday)
     start_hour = models.PositiveIntegerField()
     start_minute = models.PositiveIntegerField()
@@ -66,7 +66,7 @@ class SlotAvailablity(ChoiceEnum):
     CANCELLED = 'cancelled'
 
 class ConsultationSlot(TimeStampMixin):
-    consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
+    consultation_timing = models.ForeignKey(ConsultationDefalutTiming, on_delete=models.CASCADE)
     date = models.DateField()
     slot = models.CharField(max_length=15)
     # Slot example = 10:15am (In this case if 'avg_consultation_time' is 15 mins then next slot will be 10:30am) 

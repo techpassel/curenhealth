@@ -5,9 +5,9 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from hospital_app.serializers import HospitalSerializer
-from doctor_app.serializers import ConsultationSerializer, DoctorSerializer, DoctorsBriefSerializer, QualificationSerializer, SpecialitySerializer
-from hospital_app.models import Address, City, Hospital
-from doctor_app.models import Consultation, Doctor, Qualification, Speciality, ConsultationType
+from doctor_app.serializers import ConsultationDefalutTimingSerializer, ConsultationSerializer, DoctorSerializer, DoctorsBriefSerializer, QualificationSerializer, SpecialitySerializer
+from hospital_app.models import Address, City, Hospital, Weekday
+from doctor_app.models import Consultation, ConsultationDefalutTiming, Doctor, Qualification, Speciality, ConsultationType
 from utils.common_methods import generate_serializer_error
 
 # Create your views here.
@@ -95,7 +95,7 @@ class DoctorView(APIView):
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class GetDoctorDetails(APIView):
+class GetDoctorDetailsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, id):
@@ -109,7 +109,7 @@ class GetDoctorDetails(APIView):
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class SearchDoctors(APIView):
+class SearchDoctorsView(APIView):
     def get(self, request):
         try:
             speciality = request.query_params['speciality'] if 'speciality' in request.query_params and request.query_params['speciality'] != "" else None
@@ -214,7 +214,7 @@ class ConsultationView(APIView):
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class SearchConsultations(APIView):
+class SearchConsultationsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -235,6 +235,45 @@ class SearchConsultations(APIView):
                 consultations = Consultation.objects.filter(
                     doctor=doctor_id, consultation_type=ct)
             serializer = ConsultationSerializer(consultations, many=True)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ConsultationDefaultTimingsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            data = request.data
+            consultation_id = data.get("consultation_id")
+            consultation = Consultation.objects.filter(id=consultation_id).first()
+            if consultation == None:
+                return Response("Consultation not found", status=status.HTTP_400_BAD_REQUEST)
+            data["consultation"] = consultation.id
+            del data["consultation_id"]
+            serializer = ConsultationDefalutTimingSerializer(data=data)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def put(self, request):
+        try:
+            data = request.data
+            id = data.get("id")
+            consultation_timing = ConsultationDefalutTiming.objects.filter(id=id).first()
+            if consultation_timing == None:
+                return Response("Consultation not found", status=status.HTTP_400_BAD_REQUEST)
+            serializer = ConsultationDefalutTimingSerializer(consultation_timing, data=data, partial=True)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)

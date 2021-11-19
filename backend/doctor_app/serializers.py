@@ -26,12 +26,23 @@ class DoctorQualificationSerializer(serializers.ModelSerializer):
         model = Qualification
         fields = ["id", "degree", "institute", "passing_year", "remark"]
 
+class ConsultationDefalutTimingSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ConsultationDefalutTiming
+        fields = ["id", "consultation", "day_name", "start_hour", "start_minute", "start_period", "end_hour", "end_minute", "end_period"]
+
+class ConsultationSlotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConsultationSlot
+        fields = ["id", "consultation_timing", "date", "slot", "availablity"]
 
 class ConsultationSerializer(serializers.ModelSerializer):
     address_details = AddressSerializer(source="address", read_only=True)
+    consultation_timing = ConsultationDefalutTimingSerializer(source="timing_related_consultation", read_only=True, many=True)
     class Meta:
         model = Consultation
-        fields = ["id", "doctor", "consultation_type", "hospital",
+        fields = ["id", "doctor", "consultation_type", "consultation_timing", "hospital",
                   "location", "address", "address_details", "consultation_fee", "note", "avg_slot_duration"]
 
 
@@ -50,7 +61,7 @@ class DoctorSerializer(serializers.ModelSerializer):
     specialities_details = SpecialitySerializer(source="specialities", many=True, read_only=True)
     hospitals_details = HospitalSerializer(source="hospitals", many=True, read_only=True)
     user_details = UserSerializer(source="user", read_only=True)
-    consultations = ConsultationSerializer(source="consultation_doctor", many=True)
+    consultations = ConsultationSerializer(source="consultation_doctor", many=True, read_only=True)
 
     def update(self, instance, validated_data):
         specialities = validated_data.pop('specialities', None)
@@ -86,14 +97,3 @@ class DoctorSerializer(serializers.ModelSerializer):
                   "specialities", "specialities_details", "hospitals", "hospitals_details", "consultations", "details", "additional_details"]
 
 
-class ConsultationDefalutTimingSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ConsultationDefalutTiming
-        fields = ["id", "consultation", "day_name", "start_hour",
-                  "start_minute", "start_period", "end_hour", "end_minute", "end_period"]
-
-
-class ConsultationSlotSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ConsultationSlot
-        fields = ["id", "consultation", "date", "slot", "availablity"]

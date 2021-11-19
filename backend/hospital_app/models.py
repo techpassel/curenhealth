@@ -25,13 +25,13 @@ class Address(models.Model):
 
 
 class Weekday(ChoiceEnum):
-    MONDAY = 'mon'
-    TUESDAY = 'tues'
-    WEDNESDAY = 'wed'
-    THURSDAY = 'thurs'
-    FRIDAY = 'fri'
-    SATURDAY = 'satur'
-    SUNDAY = 'sun'
+    MONDAY = 'monday'
+    TUESDAY = 'tuesday'
+    WEDNESDAY = 'wednesday'
+    THURSDAY = 'thursday'
+    FRIDAY = 'friday'
+    SATURDAY = 'saturday'
+    SUNDAY = 'sunday'
 
 
 class SlotPeriod(ChoiceEnum):
