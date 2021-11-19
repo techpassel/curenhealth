@@ -66,7 +66,7 @@ class SlotAvailablity(ChoiceEnum):
     CANCELLED = 'cancelled'
 
 class ConsultationSlot(TimeStampMixin):
-    consultation_timing = models.ForeignKey(ConsultationDefalutTiming, on_delete=models.CASCADE)
+    consultation_timing = models.ForeignKey(ConsultationDefalutTiming, on_delete=models.CASCADE, related_name="slot_related_consultation_timing")
     date = models.DateField()
     slot = models.CharField(max_length=15)
     # Slot example = 10:15am (In this case if 'avg_consultation_time' is 15 mins then next slot will be 10:30am) 

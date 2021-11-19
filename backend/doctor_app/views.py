@@ -5,9 +5,9 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from hospital_app.serializers import HospitalSerializer
-from doctor_app.serializers import ConsultationDefalutTimingSerializer, ConsultationSerializer, DoctorSerializer, DoctorsBriefSerializer, QualificationSerializer, SpecialitySerializer
+from doctor_app.serializers import ConsultationDefalutTimingSerializer, ConsultationSerializer, ConsultationSlotSerializer, DoctorSerializer, DoctorsBriefSerializer, QualificationSerializer, SpecialitySerializer
 from hospital_app.models import Address, City, Hospital, Weekday
-from doctor_app.models import Consultation, ConsultationDefalutTiming, Doctor, Qualification, Speciality, ConsultationType
+from doctor_app.models import Consultation, ConsultationDefalutTiming, ConsultationSlot, Doctor, Qualification, Speciality, ConsultationType
 from utils.common_methods import generate_serializer_error
 
 # Create your views here.
@@ -274,6 +274,54 @@ class ConsultationDefaultTimingsView(APIView):
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ConsultationSlotsView(APIView):
+    def post(self, request):
+        try:
+            data = request.data
+            consultation_timing_id = data.get("consultation_timing_id")
+            consultation_timing = ConsultationDefalutTiming.objects.filter(id=consultation_timing_id).first()
+            if consultation_timing == None:
+                return Response("Consultation timing not found", status=status.HTTP_400_BAD_REQUEST)
+            data["consultation_timing"] = consultation_timing.id
+            del data["consultation_timing_id"]
+            serializer = ConsultationSlotSerializer(data=data)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def put(self, request):
+        try:
+            data = request.data
+            id = data.get("id")
+            consultation_slot = ConsultationSlot.objects.filter(id=id).first()
+            if consultation_slot == None:
+                return Response("Consultation slot not found", status=status.HTTP_400_BAD_REQUEST)
+            serializer = ConsultationSlotSerializer(consultation_slot, data=data, partial=True)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetSlotsByConsultationTimingView(APIView):
+    def get(self, request, consultation_timing_id):
+        try:
+            slots = ConsultationSlot.objects.filter(consultation_timing=consultation_timing_id)
+            serializer = ConsultationSlotSerializer(slots, many=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
