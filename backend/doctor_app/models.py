@@ -1,6 +1,6 @@
 from django.db import models
 from auth_app.models import TimeStampMixin, User
-from hospital_app.models import Hospital, Weekday, SlotPeriod, Address
+from hospital_app.models import Hospital, Pathlab, Weekday, SlotPeriod, Address
 from enumchoicefield import ChoiceEnum, EnumChoiceField
 from django.contrib.postgres.fields import ArrayField
 
@@ -30,8 +30,8 @@ class Doctor(TimeStampMixin):
     # image = models.ImageField(User, null=True, blank=True, upload_to="images/")
     practice_start_year = models.IntegerField()
     # ForeignKey is used for ManyToOne relationship 
-    specialities = models.ManyToManyField(Speciality)
-    hospitals = models.ManyToManyField(Hospital)
+    specialities = models.ManyToManyField(Speciality, blank=True)
+    hospitals = models.ManyToManyField(Hospital, blank=True)
     details = models.TextField(blank=True)
     additional_details = models.TextField(blank=True)
 
@@ -93,14 +93,15 @@ class ClientStaffPermissions(ChoiceEnum):
 class ClientStaff(TimeStampMixin):
     # Ex - Doctor_Staff, Hospital Staff, Pathlab Staff
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="client_staff_user")
-    primary_role = EnumChoiceField(ClientStaffRoles) 
-    doctor_id = models.ForeignKey(Doctor, on_delete=models.PROTECT, null=True, blank=True, related_name="client_staff_doctor")
-    hospital_id = models.ForeignKey(Hospital, on_delete=models.PROTECT, null=True, blank=True, related_name="client_staff_hospital")
-    responsibilities = ArrayField(EnumChoiceField(ClientStaffPermissions))
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, null=True, blank=True, related_name="doctors_client_staff")
+    hospital = models.ForeignKey(Hospital, on_delete=models.CASCADE, null=True, blank=True, related_name="hospitals_client_staff")
+    pathlab = models.ForeignKey(Pathlab, on_delete=models.CASCADE, null=True, blank=True, related_name="pathlabs_client_staff")
+    permissons = ArrayField(EnumChoiceField(ClientStaffPermissions))
 
 class ClientStaffSecondaryRoles(TimeStampMixin):
     staff = models.ForeignKey(ClientStaff, on_delete=models.CASCADE, related_name="cs_secondary_role_user")
     secondary_role = EnumChoiceField(ClientStaffRoles)
-    doctor_id = models.ForeignKey(Doctor, on_delete=models.PROTECT, null=True, blank=True, related_name="cs_secondary_role_doctor")
-    hospital_id = models.ForeignKey(Hospital, on_delete=models.PROTECT, null=True, blank=True, related_name="cs_secondary_role_hospital")
+    doctor = models.ForeignKey(Doctor, on_delete=models.PROTECT, null=True, blank=True, related_name="doctor_cs_secondary_role")
+    hospital = models.ForeignKey(Hospital, on_delete=models.PROTECT, null=True, blank=True, related_name="hospital_cs_secondary_role")
+    pathlab = models.ForeignKey(Pathlab, on_delete=models.CASCADE, null=True, blank=True, related_name="pathlabs_cs_secondary_role")
     permissons = ArrayField(EnumChoiceField(ClientStaffPermissions))

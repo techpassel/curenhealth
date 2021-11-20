@@ -1,18 +1,19 @@
-from functools import partial
-from rest_framework.decorators import permission_classes
+from rest_framework import permissions
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from hospital_app.serializers import HospitalSerializer
-from doctor_app.serializers import ConsultationDefalutTimingSerializer, ConsultationSerializer, ConsultationSlotSerializer, DoctorSerializer, DoctorsBriefSerializer, QualificationSerializer, SpecialitySerializer
-from hospital_app.models import Address, City, Hospital, Weekday
-from doctor_app.models import Consultation, ConsultationDefalutTiming, ConsultationSlot, Doctor, Qualification, Speciality, ConsultationType
+from auth_app.serializers import RegistrationSerializer
+from auth_app.models import User, UserType
+from utils.email import client_staff_activation_email
+from doctor_app.serializers import ClientStaffSerializer, ConsultationDefalutTimingSerializer, ConsultationSerializer, ConsultationSlotSerializer, DoctorSerializer, DoctorsBriefSerializer, QualificationSerializer, SpecialitySerializer
+from hospital_app.models import Address, Hospital
+from doctor_app.models import ClientStaffPermissions, Consultation, ConsultationDefalutTiming, ConsultationSlot, Doctor, Qualification, Speciality, ConsultationType
 from utils.common_methods import generate_serializer_error
+import string
+import secrets
 
 # Create your views here.
-
-
 class SpecialityView(APIView):
     permission_classes = [IsAuthenticated, ]
 
@@ -324,6 +325,48 @@ class GetSlotsByConsultationTimingView(APIView):
             serializer = ConsultationSlotSerializer(slots, many=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ClientStaffView(APIView):
+    permission_classes= [IsAuthenticated]
+
+    def post(self, request):
+        created_user_id = None
+        try:
+            request_user = request.user
+            request_user_type = request_user.usertype
+            request_user_name = request_user.get_full_name()
+            unit_type = request_user_type
+            unit_name = request_user_name
+            data = request.data
+            user = data.get("user")
+            alphabet = string.ascii_letters + string.digits
+            password = ''.join(secrets.choice(alphabet) for i in range(16))
+            user["password"] = password
+            user_serializer = RegistrationSerializer(data=user)
+            if not user_serializer.is_valid():
+                raise Exception(generate_serializer_error(user_serializer.errors))
+            user_serializer.save()
+            
+            created_user_id = user_serializer.data.get("id")
+            doctor = Doctor.objects.filter(id=data.get("doctor_id")).first()
+            if doctor == None:
+                return Response("Doctor not found.", status=status.HTTP_400_BAD_REQUEST)
+            data["doctor"] = doctor.id
+            del data["doctor_id"]
+            data["user"] = user_serializer.data.get("id")
+            serializer = ClientStaffSerializer(data=data, partial=True)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            client_staff_activation_email(user_serializer.data, password, request_user, unit_type, unit_name)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            if created_user_id != None:
+                user = User.objects.get(id=created_user_id)
+                user.delete()
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)

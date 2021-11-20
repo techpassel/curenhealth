@@ -2,22 +2,19 @@ from datetime import datetime, timedelta
 import secrets
 from django.conf import settings
 from django.core.mail.message import EmailMessage
-from django.http.response import HttpResponse, JsonResponse
+from django.http.response import HttpResponse
 from django.template.loader import render_to_string
-from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework import status
 from auth_app.models import TokenType, User, VerificationToken
 from utils.common_methods import generate_serializer_error
 from .serializers import RegistrationSerializer, LoginSerializer, VerificationTokenSerializer
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from .renderers import UserJSONRenderer
+from rest_framework.permissions import AllowAny
 from django.db.utils import IntegrityError
-from django.contrib.auth import authenticate
 import pytz
+from utils.email import forget_password_email, send_account_activation_email
 
 @csrf_exempt
 @api_view(['POST'])
@@ -69,38 +66,6 @@ def resend_activation_email(request):
         return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-def send_account_activation_email(user):
-    token = secrets.token_urlsafe(57)
-    url = f'{settings.FRONTEND_BASE_URL}auth/activate-account/{token}'
-    header_message = f"Hi {user['first_name']}.Thanks for registering with us. Please click on the button below to activate your account."
-    html_template = 'email_verification_template.html'
-    html_message = render_to_string(
-        html_template, {'header_message': header_message, 'url': url})
-    subject = 'Verify your email.'
-    email_from = settings.DEFAULT_FROM_EMAIL
-    recipient_list = [user['email'], ]
-    message = EmailMessage(subject, html_message,
-                           email_from, recipient_list)
-    message.content_subtype = 'html'
-    message.send()
-    token_data = {
-        'user': user['id'],
-        'token_type': TokenType.SIGNUP_EMAIL_VERIFICATION_TOKEN,
-        'token': token
-    }
-    existing_verification_token = VerificationToken.objects.filter(
-        user=user['id'],
-        token_type = TokenType.SIGNUP_EMAIL_VERIFICATION_TOKEN).first()
-    if existing_verification_token != None:
-        existing_verification_token.delete()
-    serializer = VerificationTokenSerializer(
-        data=token_data, partial=True)
-    if not serializer.is_valid():
-        raise Exception(generate_serializer_error(serializer.errors))
-    serializer.save()
-    return
-
-
 @csrf_exempt
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -143,34 +108,7 @@ def forget_password(request):
         user = User.objects.filter(email=email).first()
         if user == None:
             return Response("User with given email doesn't exist.", status=status.HTTP_400_BAD_REQUEST)
-        token = secrets.token_urlsafe(57)
-        url = f'{settings.FRONTEND_BASE_URL}auth/verify-reset-password-token/{token}'
-        header_message = f"Hi {user.get_full_name()}.Please click on the button below to reset your password."
-        html_template = 'email_verification_template.html'
-        html_message = render_to_string(
-            html_template, {'header_message': header_message, 'url': url})
-        subject = 'Reset your password.'
-        email_from = settings.DEFAULT_FROM_EMAIL
-        recipient_list = [user.email, ]
-        message = EmailMessage(subject, html_message,
-                            email_from, recipient_list)
-        message.content_subtype = 'html'
-        message.send()
-        token_data = {
-            'user': user.id,
-            'token_type': TokenType.RESET_PASSWORD_TOKEN,
-            'token': token
-        }
-        existing_verification_token = VerificationToken.objects.filter(
-            user=user.id, 
-            token_type = TokenType.RESET_PASSWORD_TOKEN).first()
-        if existing_verification_token != None:
-            existing_verification_token.delete()
-        serializer = VerificationTokenSerializer(
-            data=token_data, partial=True)
-        if not serializer.is_valid():
-            raise Exception(generate_serializer_error(serializer.errors))
-        serializer.save()
+        forget_password_email(user)
         return Response("A link has been sent to your registered email id to reset your password.Please check your email.", status=status.HTTP_200_OK)
     except (AssertionError, Exception) as err:
         return Response(str(err), status=status.HTTP_400_BAD_REQUEST)

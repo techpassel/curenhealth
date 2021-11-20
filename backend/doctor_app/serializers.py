@@ -1,9 +1,7 @@
-from django.db import models
-from django.db.models import fields
+from enumchoicefield.fields import EnumChoiceField
 from rest_framework import serializers
-from hospital_app.models import Hospital
 from hospital_app.serializers import AddressSerializer, HospitalSerializer, HospitalBriefSerializer
-from doctor_app.models import Consultation, ConsultationDefalutTiming, ConsultationSlot, Doctor, Qualification, Speciality
+from doctor_app.models import ClientStaff, ClientStaffPermissions, ClientStaffSecondaryRoles, Consultation, ConsultationDefalutTiming, ConsultationSlot, Doctor, Qualification, Speciality
 from user_app.serializers import UserSerializer
 
 
@@ -55,6 +53,17 @@ class ConsultationSerializer(serializers.ModelSerializer):
         model = Consultation
         fields = ["id", "doctor", "consultation_type", "consultation_timing", "hospital",
                   "location", "address", "address_details", "consultation_fee", "note", "avg_slot_duration"]
+
+
+class DoctorNameSerializer(serializers.ModelSerializer):
+    # doctor_name = UserSerializer(source="user.get_full_name", read_only=True)
+    doctor_name = serializers.SerializerMethodField('get_doctor_name')
+
+    def get_doctor_name(self, obj):
+        return obj.user.get_full_name()
+    class Meta:
+        model = Doctor
+        fields = ["id", "doctor_name"]
 
 
 class DoctorsBriefSerializer(serializers.ModelSerializer):
@@ -115,3 +124,29 @@ class DoctorSerializer(serializers.ModelSerializer):
         model = Doctor
         fields = ["id", "user", "user_details", "dob", "image", "practice_start_year", "qualification_set",
                   "specialities", "specialities_details", "hospitals", "hospitals_details", "consultations", "details", "additional_details"]
+
+
+class ClientStaffSerializer(serializers.ModelSerializer):
+    doctor_details = DoctorNameSerializer(source="doctor", read_only=True)
+    # permissons = serializers.ListField(child=serializers.ChoiceField(ClientStaffPermissions))
+
+    def create(self, validated_data):
+        permissons = validated_data.pop('permissons', [])
+        validated_data["permissons"] = []
+        client_staff = ClientStaff.objects.create(**validated_data)
+        # for x in permissons:
+        #     print(x, "xxxx")
+        #     client_staff.permissons.append(x)
+        client_staff.save()
+        return client_staff
+    
+    class Meta:
+        model = ClientStaff
+        fields = ["id", "user", "doctor", "doctor_details", "hospital", "pathlab", "permissons"]
+
+
+class ClientStaffSecondaryRolesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClientStaffSecondaryRoles
+        fields = ["id", "staff", "secondary_role",
+              "doctor", "hospital", "pathlab", "permissons"]
