@@ -1,5 +1,6 @@
 from auth_app.models import UserType
 from rest_framework.utils.serializer_helpers import ReturnDict
+from doctor_app.models import ClientStaffPermissions
 
 def generate_serializer_error(errors):
     formated_error = ""
@@ -11,6 +12,12 @@ def generate_serializer_error(errors):
                 (", " if (list(errors)[-1] != key) else "")
         return formated_error
 
+def verify_clientstaff_permissions(permissions):
+    for p in permissions:
+        print(ClientStaffPermissions[p])
+        if ClientStaffPermissions[p] == None:
+            return False
+    return True
 
 def verify_admin(user):
     if user.usertype == UserType.ADMIN or user.usertype == UserType.ADMIN_STAFF:

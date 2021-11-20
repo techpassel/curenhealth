@@ -128,25 +128,13 @@ class DoctorSerializer(serializers.ModelSerializer):
 
 class ClientStaffSerializer(serializers.ModelSerializer):
     doctor_details = DoctorNameSerializer(source="doctor", read_only=True)
-    # permissons = serializers.ListField(child=serializers.ChoiceField(ClientStaffPermissions))
-
-    def create(self, validated_data):
-        permissons = validated_data.pop('permissons', [])
-        validated_data["permissons"] = []
-        client_staff = ClientStaff.objects.create(**validated_data)
-        # for x in permissons:
-        #     print(x, "xxxx")
-        #     client_staff.permissons.append(x)
-        client_staff.save()
-        return client_staff
-    
     class Meta:
         model = ClientStaff
-        fields = ["id", "user", "doctor", "doctor_details", "hospital", "pathlab", "permissons"]
+        fields = ["id", "user", "doctor", "doctor_details", "hospital", "pathlab", "permissions"]
 
 
 class ClientStaffSecondaryRolesSerializer(serializers.ModelSerializer):
     class Meta:
         model = ClientStaffSecondaryRoles
         fields = ["id", "staff", "secondary_role",
-              "doctor", "hospital", "pathlab", "permissons"]
+              "doctor", "hospital", "pathlab", "permissions"]

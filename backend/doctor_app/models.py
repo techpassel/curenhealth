@@ -96,7 +96,11 @@ class ClientStaff(TimeStampMixin):
     doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, null=True, blank=True, related_name="doctors_client_staff")
     hospital = models.ForeignKey(Hospital, on_delete=models.CASCADE, null=True, blank=True, related_name="hospitals_client_staff")
     pathlab = models.ForeignKey(Pathlab, on_delete=models.CASCADE, null=True, blank=True, related_name="pathlabs_client_staff")
-    permissons = ArrayField(EnumChoiceField(ClientStaffPermissions))
+    permissions = ArrayField(models.CharField(max_length=50))
+    # permissions filed should be defined as - ArrayField(EnumChoiceField(ClientStaffPermissions))
+    # But it was creating problem in serializer while storing "permisions" value.
+    # So to avoid such issues we used CharField in place of "EnumChoiceField(ClientStaffPermissions)".
+    # We will verify in our serializer that each permisson items belongs to ClientStaffPermissions.  
 
 class ClientStaffSecondaryRoles(TimeStampMixin):
     staff = models.ForeignKey(ClientStaff, on_delete=models.CASCADE, related_name="cs_secondary_role_user")
@@ -104,4 +108,8 @@ class ClientStaffSecondaryRoles(TimeStampMixin):
     doctor = models.ForeignKey(Doctor, on_delete=models.PROTECT, null=True, blank=True, related_name="doctor_cs_secondary_role")
     hospital = models.ForeignKey(Hospital, on_delete=models.PROTECT, null=True, blank=True, related_name="hospital_cs_secondary_role")
     pathlab = models.ForeignKey(Pathlab, on_delete=models.CASCADE, null=True, blank=True, related_name="pathlabs_cs_secondary_role")
-    permissons = ArrayField(EnumChoiceField(ClientStaffPermissions))
+    permissions = ArrayField(models.CharField(max_length=50))
+    # permissions filed should be defined as - ArrayField(EnumChoiceField(ClientStaffPermissions))
+    # But it was creating problem in serializer while storing "permisions" value.
+    # So to avoid such issues we used CharField in place of "EnumChoiceField(ClientStaffPermissions)".
+    # We will verify in our serializer that each permisson items belongs to ClientStaffPermissions.  

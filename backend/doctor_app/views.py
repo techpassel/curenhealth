@@ -9,7 +9,7 @@ from utils.email import client_staff_activation_email
 from doctor_app.serializers import ClientStaffSerializer, ConsultationDefalutTimingSerializer, ConsultationSerializer, ConsultationSlotSerializer, DoctorSerializer, DoctorsBriefSerializer, QualificationSerializer, SpecialitySerializer
 from hospital_app.models import Address, Hospital
 from doctor_app.models import ClientStaffPermissions, Consultation, ConsultationDefalutTiming, ConsultationSlot, Doctor, Qualification, Speciality, ConsultationType
-from utils.common_methods import generate_serializer_error
+from utils.common_methods import generate_serializer_error, verify_clientstaff_permissions
 import string
 import secrets
 
@@ -340,7 +340,12 @@ class ClientStaffView(APIView):
             request_user_name = request_user.get_full_name()
             unit_type = request_user_type
             unit_name = request_user_name
+            
             data = request.data
+            # Calling this function to verify permissions sent by user belongs to ClientStaffPermissions
+            # We are just calling this method as if any of the permission sent by user doesn't belong to ClientStaffPermissions
+            # Then exception will be throw and response will be returned to him/her from except block.
+            verify_clientstaff_permissions(data["permissions"])
             user = data.get("user")
             alphabet = string.ascii_letters + string.digits
             password = ''.join(secrets.choice(alphabet) for i in range(16))
