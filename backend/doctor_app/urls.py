@@ -13,7 +13,9 @@ urlpatterns = [
     path('consultation-slot/', views.ConsultationSlotsView.as_view()),
     path('slots-by-consultation-timing/<int:consultation_timing_id>',
          views.GetSlotsByConsultationTimingView.as_view()),
-    path('client-staff/', views.ClientStaffView.as_view())
+    path('client-staff/', views.ClientStaffView.as_view()),
+    path('update-client-staff-email/', views.UpdateClientStaffEmail.as_view()),
+    path('resend-client-staff-verification-email/', views.ResendClientStaffVerificationEmail.as_view())
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

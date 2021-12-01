@@ -14,7 +14,6 @@ def generate_serializer_error(errors):
 
 def verify_clientstaff_permissions(permissions):
     for p in permissions:
-        print(ClientStaffPermissions[p])
         if ClientStaffPermissions[p] == None:
             return False
     return True
@@ -24,3 +23,5 @@ def verify_admin(user):
         return True
     else:
         raise Exception("You don't have permission to perform this action.")
+def get_client_staff_default_password(unit_name):
+    return unit_name.replace(" ", "_").lower()+"@staff159827"

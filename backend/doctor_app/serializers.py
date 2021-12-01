@@ -1,7 +1,6 @@
-from enumchoicefield.fields import EnumChoiceField
 from rest_framework import serializers
 from hospital_app.serializers import AddressSerializer, HospitalSerializer, HospitalBriefSerializer
-from doctor_app.models import ClientStaff, ClientStaffPermissions, ClientStaffSecondaryRoles, Consultation, ConsultationDefalutTiming, ConsultationSlot, Doctor, Qualification, Speciality
+from doctor_app.models import ClientStaff, ClientStaffSecondaryRoles, Consultation, ConsultationDefalutTiming, ConsultationSlot, Doctor, Qualification, Speciality
 from user_app.serializers import UserSerializer
 
 
@@ -128,9 +127,10 @@ class DoctorSerializer(serializers.ModelSerializer):
 
 class ClientStaffSerializer(serializers.ModelSerializer):
     doctor_details = DoctorNameSerializer(source="doctor", read_only=True)
+    user_details = UserSerializer(source="user", read_only=True)
     class Meta:
         model = ClientStaff
-        fields = ["id", "user", "doctor", "doctor_details", "hospital", "pathlab", "permissions"]
+        fields = ["id", "user", "user_details", "doctor", "doctor_details", "hospital", "pathlab", "permissions"]
 
 
 class ClientStaffSecondaryRolesSerializer(serializers.ModelSerializer):

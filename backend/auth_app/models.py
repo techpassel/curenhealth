@@ -131,9 +131,11 @@ class TokenType(ChoiceEnum):
     SIGNUP_EMAIL_VERIFICATION_TOKEN = "signup_email_verification_token"
     UPDATE_EMAIL_VERIFICATION_TOKEN = "update_email_verification_token"
     RESET_PASSWORD_TOKEN = "reset_password_token"
+    CLIENT_STAFF_VERIFICATION_TOKEN = "client_staff_verification_token"
+    CLIENT_STAFF_EMAIL_UPDATION_TOKEN = "client_staff_email_updation_token"
 
 class VerificationToken(TimeStampMixin):
     user = models.ForeignKey(User, on_delete=CASCADE)
-    token_type = EnumChoiceField(TokenType)
+    token_type = EnumChoiceField(TokenType, max_length=100)
     token = models.CharField(max_length=100, unique=True)
     updating_value = models.CharField(max_length=100)

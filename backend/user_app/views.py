@@ -5,15 +5,12 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from auth_app.models import TokenType, User, VerificationToken
-from auth_app.serializers import RegistrationSerializer, VerificationTokenSerializer
+from auth_app.models import User, VerificationToken
+from auth_app.serializers import RegistrationSerializer
+from utils.email import update_user_email
 from user_app.serializers import HealthRecordsSerializer, SubscriptionSchemesSerializer, UserDetailsSerializer, UserSubscriptionSerializer
 from user_app.models import HealthRecord, HealthRecordTypes, SubscriptionScheme, UserDetail, UserSubscription
-from django.conf import settings
-from django.template.loader import render_to_string
-from django.core.mail import EmailMessage
 from utils.common_methods import generate_serializer_error
-import secrets
 import pytz
 # Create your views here.
 
@@ -101,8 +98,7 @@ class UpdateUserView(APIView):
                 if key in user_data:
                     return Response(f"{key} can't be changed from this api.", status=status.HTTP_403_FORBIDDEN)
             user = User.objects.get(id=user_data['id'])
-            serializer = RegistrationSerializer(
-                instance=user, data=user_data, partial=True)
+            serializer = RegistrationSerializer(user, data=user_data, partial=True)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
@@ -175,33 +171,8 @@ class UpdateEmailRequestView(APIView):
                 return Response("User with given id not found", status=status.HTTP_400_BAD_REQUEST)
             if user.email != user_data['current_email']:
                 return Response("Current email did not matched with your stored data.", status=status.HTTP_400_BAD_REQUEST)
-            token = secrets.token_urlsafe(57)
-            url = f'{settings.FRONTEND_BASE_URL}user/update-email-verify/{token}'
-            header_message = f"Hi {user.get_full_name()}.Please click on the button below to verify your email."
-            html_template = 'email_verification_template.html'
-            html_message = render_to_string(
-                html_template, {'header_message': header_message, 'url': url})
-            subject = 'Verify your email.'
-            email_from = settings.DEFAULT_FROM_EMAIL
-            recipient_list = [user_data['new_email'], ]
-            message = EmailMessage(subject, html_message,
-                                   email_from, recipient_list)
-            message.content_subtype = 'html'
-            message.send()
-            token_data = {
-                'user': user.id,
-                'token_type': TokenType.UPDATE_EMAIL_VERIFICATION_TOKEN,
-                'token': token,
-                'updating_value': user_data['new_email']}
-            existing_verification_token = VerificationToken.objects.filter(
-                user=user).first()
-            if existing_verification_token != None:
-                existing_verification_token.delete()
-            serializer = VerificationTokenSerializer(
-                data=token_data, partial=True)
-            if not serializer.is_valid():
-                raise Exception(generate_serializer_error(serializer.errors))
-            serializer.save()
+            update_user_email(user, user_data["new_email"])
+            
             return Response("A verification email is send to your updated email id. Please verify your email to link it with your account.", status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)

@@ -4,18 +4,19 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from auth_app.serializers import RegistrationSerializer
-from auth_app.models import User, UserType
-from utils.email import client_staff_activation_email
+from auth_app.models import TokenType, User, UserType, VerificationToken
+from user_app.serializers import UserSerializer
+from utils.email import client_staff_activation_email, update_user_email
 from doctor_app.serializers import ClientStaffSerializer, ConsultationDefalutTimingSerializer, ConsultationSerializer, ConsultationSlotSerializer, DoctorSerializer, DoctorsBriefSerializer, QualificationSerializer, SpecialitySerializer
 from hospital_app.models import Address, Hospital
-from doctor_app.models import ClientStaffPermissions, Consultation, ConsultationDefalutTiming, ConsultationSlot, Doctor, Qualification, Speciality, ConsultationType
-from utils.common_methods import generate_serializer_error, verify_clientstaff_permissions
-import string
-import secrets
+from doctor_app.models import ClientStaff, ClientStaffPermissions, Consultation, ConsultationDefalutTiming, ConsultationSlot, Doctor, Qualification, Speciality, ConsultationType
+from utils.common_methods import generate_serializer_error, get_client_staff_default_password, verify_clientstaff_permissions
 
 # Create your views here.
+
+
 class SpecialityView(APIView):
-    permission_classes = [IsAuthenticated, ]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         try:
@@ -242,6 +243,7 @@ class SearchConsultationsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class ConsultationDefaultTimingsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -249,7 +251,8 @@ class ConsultationDefaultTimingsView(APIView):
         try:
             data = request.data
             consultation_id = data.get("consultation_id")
-            consultation = Consultation.objects.filter(id=consultation_id).first()
+            consultation = Consultation.objects.filter(
+                id=consultation_id).first()
             if consultation == None:
                 return Response("Consultation not found", status=status.HTTP_400_BAD_REQUEST)
             data["consultation"] = consultation.id
@@ -263,15 +266,17 @@ class ConsultationDefaultTimingsView(APIView):
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
     def put(self, request):
         try:
             data = request.data
             id = data.get("id")
-            consultation_timing = ConsultationDefalutTiming.objects.filter(id=id).first()
+            consultation_timing = ConsultationDefalutTiming.objects.filter(
+                id=id).first()
             if consultation_timing == None:
                 return Response("Consultation not found", status=status.HTTP_400_BAD_REQUEST)
-            serializer = ConsultationDefalutTimingSerializer(consultation_timing, data=data, partial=True)
+            serializer = ConsultationDefalutTimingSerializer(
+                consultation_timing, data=data, partial=True)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
@@ -281,12 +286,14 @@ class ConsultationDefaultTimingsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class ConsultationSlotsView(APIView):
     def post(self, request):
         try:
             data = request.data
             consultation_timing_id = data.get("consultation_timing_id")
-            consultation_timing = ConsultationDefalutTiming.objects.filter(id=consultation_timing_id).first()
+            consultation_timing = ConsultationDefalutTiming.objects.filter(
+                id=consultation_timing_id).first()
             if consultation_timing == None:
                 return Response("Consultation timing not found", status=status.HTTP_400_BAD_REQUEST)
             data["consultation_timing"] = consultation_timing.id
@@ -300,7 +307,7 @@ class ConsultationSlotsView(APIView):
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
     def put(self, request):
         try:
             data = request.data
@@ -308,7 +315,8 @@ class ConsultationSlotsView(APIView):
             consultation_slot = ConsultationSlot.objects.filter(id=id).first()
             if consultation_slot == None:
                 return Response("Consultation slot not found", status=status.HTTP_400_BAD_REQUEST)
-            serializer = ConsultationSlotSerializer(consultation_slot, data=data, partial=True)
+            serializer = ConsultationSlotSerializer(
+                consultation_slot, data=data, partial=True)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
@@ -318,10 +326,12 @@ class ConsultationSlotsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class GetSlotsByConsultationTimingView(APIView):
     def get(self, request, consultation_timing_id):
         try:
-            slots = ConsultationSlot.objects.filter(consultation_timing=consultation_timing_id)
+            slots = ConsultationSlot.objects.filter(
+                consultation_timing=consultation_timing_id)
             serializer = ConsultationSlotSerializer(slots, many=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except (AssertionError, Exception) as err:
@@ -329,8 +339,9 @@ class GetSlotsByConsultationTimingView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class ClientStaffView(APIView):
-    permission_classes= [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         created_user_id = None
@@ -338,27 +349,37 @@ class ClientStaffView(APIView):
             request_user = request.user
             request_user_type = request_user.usertype
             request_user_name = request_user.get_full_name()
-            unit_type = request_user_type
-            unit_name = request_user_name
-            
+            unit_type = None
+            unit_name = None
+            if request_user_type == UserType.DOCTOR or request_user_type == UserType.DOCTOR_STAFF:
+                unit_type = "DOCTOR"
+                if request_user_type == UserType.DOCTOR_STAFF:
+                    requesting_staff = ClientStaff.objects.get(
+                        user=request_user.id)
+                    unit_name = requesting_staff.doctor_details.doctor_name
+                else:
+                    unit_name = request_user_name
             data = request.data
+            unit_type = unit_type.title()
+            unit_name = unit_name.title()
+            request_user_name = request_user_name.title()
             # Calling this function to verify permissions sent by user belongs to ClientStaffPermissions
             # We are just calling this method as if any of the permission sent by user doesn't belong to ClientStaffPermissions
             # Then exception will be throw and response will be returned to him/her from except block.
             verify_clientstaff_permissions(data["permissions"])
             user = data.get("user")
-            alphabet = string.ascii_letters + string.digits
-            password = ''.join(secrets.choice(alphabet) for i in range(16))
+            password = get_client_staff_default_password(unit_name)
             user["password"] = password
             user_serializer = RegistrationSerializer(data=user)
             if not user_serializer.is_valid():
-                raise Exception(generate_serializer_error(user_serializer.errors))
+                raise Exception(generate_serializer_error(
+                    user_serializer.errors))
             user_serializer.save()
-            
+
             created_user_id = user_serializer.data.get("id")
             doctor = Doctor.objects.filter(id=data.get("doctor_id")).first()
             if doctor == None:
-                return Response("Doctor not found.", status=status.HTTP_400_BAD_REQUEST)
+                raise Exception("Doctor not found.")
             data["doctor"] = doctor.id
             del data["doctor_id"]
             data["user"] = user_serializer.data.get("id")
@@ -366,12 +387,160 @@ class ClientStaffView(APIView):
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
-            client_staff_activation_email(user_serializer.data, password, request_user, unit_type, unit_name)
+            client_staff_activation_email(
+                user_serializer.data, password, request_user_name, unit_type, unit_name)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except (AssertionError, Exception) as err:
             if created_user_id != None:
                 user = User.objects.get(id=created_user_id)
                 user.delete()
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def put(self, request):
+        try:
+            request_user = request.user
+            request_user_type = request_user.usertype
+            request_user_name = request_user.get_full_name()
+            unit_type = None
+            unit_name = None
+            if request_user_type == UserType.DOCTOR or request_user_type == UserType.DOCTOR_STAFF:
+                unit_type = "DOCTOR"
+                if request_user_type == UserType.DOCTOR_STAFF:
+                    requesting_staff = ClientStaff.objects.get(
+                        user=request_user.id)
+                    unit_name = requesting_staff.doctor_details.doctor_name
+                else:
+                    unit_name = request_user_name
+            unit_type = unit_type.title()
+            unit_name = unit_name.title()
+            request_user_name = request_user_name.title()
+            data = request.data
+            client_staff_id = data.get("id")
+            client_staff_data = {}
+            # Calling this function to verify permissions sent by user belongs to ClientStaffPermissions
+            # We are just calling this method as if any of the permission sent by user doesn't belong to ClientStaffPermissions
+            # Then exception will be throw and response will be returned to him/her from except block.
+            verify_clientstaff_permissions(data["permissions"])
+            # Updating User table data
+            if "user" in data:
+                user = data.get("user")
+                user_id = user.get("id")
+                user_details = User.objects.get(id=user_id)
+                updated_email = None
+                if "email" in user:
+                    del user["email"]
+                user_serializer = RegistrationSerializer(
+                    user_details, data=user, partial=True)
+                if not user_serializer.is_valid():
+                    raise Exception(generate_serializer_error(user_serializer.errors))
+                user_serializer.save()
+            client_staff_data["user"] = user_serializer.data.get("id")
+            # Now updating Client staff table data
+            if "doctor_id" in data:
+                doctor = Doctor.objects.get(id=data.get("doctor_id"))
+                client_staff_data["doctor"] = doctor.id
+            if "permissions" in data:
+                client_staff_data["permissions"] = data.get("permissions")
+            client_staff = ClientStaff.objects.get(id=client_staff_id)
+            serializer = ClientStaffSerializer(
+                client_staff, data=client_staff_data, partial=True)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UpdateClientStaffEmail(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        try:
+            request_user = request.user
+            request_user_type = request_user.usertype
+            request_user_name = request_user.get_full_name()
+            unit_type = None
+            unit_name = None
+            if request_user_type == UserType.DOCTOR or request_user_type == UserType.DOCTOR_STAFF:
+                unit_type = "DOCTOR"
+                if request_user_type == UserType.DOCTOR_STAFF:
+                    requesting_staff = ClientStaff.objects.get(
+                        user=request_user.id)
+                    unit_name = requesting_staff.doctor_details.doctor_name
+                else:
+                    unit_name = request_user_name
+            unit_type = unit_type.title()
+            unit_name = unit_name.title()
+            request_user_name = request_user_name.title()
+            password = get_client_staff_default_password(unit_name)
+            data = request.data
+            user_id = data.get("user_id")
+            email = data.get("email")
+            
+            user_details = User.objects.get(id=user_id)
+            msg = None
+            if user_details.email == email:
+                msg = "You provided same email as the previous one.Please provide a different email to update your staff's registered email."
+            update_data = {"email": email}
+            if msg == None:
+                if user_details.is_email_verified:
+                    update_user_email(user_details, data.get("email"), TokenType.CLIENT_STAFF_EMAIL_UPDATION_TOKEN)
+                    msg = "Old email was already verified by user.So we have sent a verification email on the updated email address. When he verifies the email, his registered email will be automatically updated."
+                else:
+                    user_serializer = RegistrationSerializer(
+                        user_details, data=update_data, partial=True)
+                    if not user_serializer.is_valid():
+                        raise Exception(generate_serializer_error(user_serializer.errors))
+                    user_serializer.save()
+                    client_staff_activation_email(
+                        user_serializer.data, password, request_user_name, unit_type, unit_name)
+                    msg = "Registered email is updated and a verification email has been sent to the updated email."
+            return Response(msg, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ResendClientStaffVerificationEmail(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            request_user = request.user
+            request_user_type = request_user.usertype
+            request_user_name = request_user.get_full_name()
+            unit_type = None
+            unit_name = None
+            if request_user_type == UserType.DOCTOR or request_user_type == UserType.DOCTOR_STAFF:
+                unit_type = "DOCTOR"
+                if request_user_type == UserType.DOCTOR_STAFF:
+                    requesting_staff = ClientStaff.objects.get(
+                        user=request_user.id)
+                    unit_name = requesting_staff.doctor_details.doctor_name
+                else:
+                    unit_name = request_user_name
+            unit_type = unit_type.title()
+            unit_name = unit_name.title()
+            request_user_name = request_user_name.title()
+            password = get_client_staff_default_password(unit_name)
+            data = request.data
+            user_id = data.get("user_id")
+            user_details = User.objects.get(id=user_id)
+            if user_details.is_email_verified:
+                existing_verification_token = VerificationToken.objects.filter(user=user_id, token_type=TokenType.CLIENT_STAFF_EMAIL_UPDATION_TOKEN).first()
+                update_user_email(user_details, existing_verification_token.updating_value, TokenType.CLIENT_STAFF_EMAIL_UPDATION_TOKEN)
+            else:
+                print("111111111111111111")
+                client_staff_activation_email(
+                    user_details, password, request_user_name, unit_type, unit_name)
+            print("222222222222")
+            return Response("Verification email resend successfully", status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
