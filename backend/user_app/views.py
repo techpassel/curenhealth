@@ -12,22 +12,32 @@ from user_app.serializers import HealthRecordsSerializer, SubscriptionSchemesSer
 from user_app.models import HealthRecord, HealthRecordTypes, SubscriptionScheme, UserDetail, UserSubscription
 from utils.common_methods import generate_serializer_error
 import pytz
+
 # Create your views here.
-
-
 class UserDetailsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        users = UserDetail.objects.all()
-        serializer = UserDetailsSerializer(users, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+            limit = request.query_params.get("limit")
+            offset = request.query_params.get("offset")
+            start_val = int(offset)
+            end_val = int(offset) + int(limit)
+            users = UserDetail.objects.all()[start_val:end_val]
+            serializer = UserDetailsSerializer(users, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def post(self, request):
         try:
             data = request.data
             user_id = data.get("user_id")
             user = User.objects.get(id=user_id)
+            if user.is_active == False:
+                return Response("User is not active", status=status.HTTP_400_BAD_REQUEST)
             del data["user_id"]
             data["user"] = user.id
             serializer = UserDetailsSerializer(data=request.data)
@@ -415,3 +425,14 @@ class GetUsersAllSubscriptionView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class AppointmentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            return Response(status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)

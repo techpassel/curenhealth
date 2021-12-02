@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from hospital_app.serializers import AddressSerializer, HospitalSerializer, HospitalBriefSerializer
-from doctor_app.models import ClientStaff, ClientStaffSecondaryRoles, Consultation, ConsultationDefalutTiming, ConsultationSlot, Doctor, Qualification, Speciality
+from doctor_app.models import ClientStaff, ClientStaffSecondaryRoles, Consultation, ConsultationSession, ConsultationSlot, Doctor, Qualification, Speciality
 from user_app.serializers import UserSerializer
 
 
@@ -29,10 +29,10 @@ class DoctorQualificationSerializer(serializers.ModelSerializer):
         fields = ["id", "degree", "institute", "passing_year", "remark"]
 
 
-class ConsultationDefalutTimingSerializer(serializers.ModelSerializer):
+class ConsultationSessionSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = ConsultationDefalutTiming
+        model = ConsultationSession
         fields = ["id", "consultation", "day_name", "start_hour",
                   "start_minute", "start_period", "end_hour", "end_minute", "end_period"]
 
@@ -40,17 +40,17 @@ class ConsultationDefalutTimingSerializer(serializers.ModelSerializer):
 class ConsultationSlotSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConsultationSlot
-        fields = ["id", "consultation_timing", "date", "slot", "availablity"]
+        fields = ["id", "consultation_session", "date", "slot", "availablity"]
 
 
 class ConsultationSerializer(serializers.ModelSerializer):
     address_details = AddressSerializer(source="address", read_only=True)
-    consultation_timing = ConsultationDefalutTimingSerializer(
+    consultation_session = ConsultationSessionSerializer(
         source="timing_related_consultation", read_only=True, many=True)
 
     class Meta:
         model = Consultation
-        fields = ["id", "doctor", "consultation_type", "consultation_timing", "hospital",
+        fields = ["id", "doctor", "consultation_type", "consultation_session", "hospital",
                   "location", "address", "address_details", "consultation_fee", "note", "avg_slot_duration"]
 
 

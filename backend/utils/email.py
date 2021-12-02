@@ -10,12 +10,12 @@ from .common_methods import generate_serializer_error
 def send_account_activation_email(user):
     token = secrets.token_urlsafe(57)
     url = f'{settings.FRONTEND_BASE_URL}auth/activate-account/{token}'
-    header_message = f"Hi {user['first_name']}.Thanks for registering with us. Please click on the button below to activate your account."
+    header_message = f"Hi {user.get_full_name()}.Thanks for registering with us. Please click on the button below to activate your account."
     html_template = 'email_verification_template.html'
     html_message = render_to_string(
         html_template, {'header_message': header_message, 'url': url})
     subject = 'Verify your email.'
-    recipient_list = [user['email']]
+    recipient_list = [user.email]
     token_type = TokenType.SIGNUP_EMAIL_VERIFICATION_TOKEN
     send_email(subject, html_message, recipient_list, user, token, token_type)
 

@@ -30,7 +30,9 @@ def signup(request):
         if not serializer.is_valid():
             raise Exception(generate_serializer_error(serializer.errors))
         serializer.save()
-        send_account_activation_email(serializer.data)
+        user_id = serializer.data['id']
+        user = User.objects.get(id=user_id)
+        send_account_activation_email(user)
         return Response("Account created successfully.An account activation email is sent to your email id, please verify your account.", status=status.HTTP_201_CREATED)
     except IntegrityError as err:
         # IntegrityError in serializer.save() and not in serializer.is_valid() like incase of duplicate email etc.

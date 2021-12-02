@@ -19,6 +19,7 @@ urlpatterns = [
     path('user-subscription/<int:id>', views.GetUserSubscriptionDetailsView.as_view()),
     path('user-subscriptions/<int:user_id>', views.GetUsersAllSubscriptionView.as_view()),
     path('activate-user-subscription/', views.ActivateUserSubscription.as_view()),
+    path('appointment/', views.AppointmentView.as_view())
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

@@ -7,9 +7,9 @@ from auth_app.serializers import RegistrationSerializer
 from auth_app.models import TokenType, User, UserType, VerificationToken
 from user_app.serializers import UserSerializer
 from utils.email import client_staff_activation_email, update_user_email
-from doctor_app.serializers import ClientStaffSerializer, ConsultationDefalutTimingSerializer, ConsultationSerializer, ConsultationSlotSerializer, DoctorSerializer, DoctorsBriefSerializer, QualificationSerializer, SpecialitySerializer
+from doctor_app.serializers import ClientStaffSerializer, ConsultationSessionSerializer, ConsultationSerializer, ConsultationSlotSerializer, DoctorSerializer, DoctorsBriefSerializer, QualificationSerializer, SpecialitySerializer
 from hospital_app.models import Address, Hospital
-from doctor_app.models import ClientStaff, ClientStaffPermissions, Consultation, ConsultationDefalutTiming, ConsultationSlot, Doctor, Qualification, Speciality, ConsultationType
+from doctor_app.models import ClientStaff, ClientStaffPermissions, Consultation, ConsultationSession, ConsultationSlot, Doctor, Qualification, Speciality, ConsultationType
 from utils.common_methods import generate_serializer_error, get_client_staff_default_password, verify_clientstaff_permissions
 
 # Create your views here.
@@ -257,7 +257,7 @@ class ConsultationDefaultTimingsView(APIView):
                 return Response("Consultation not found", status=status.HTTP_400_BAD_REQUEST)
             data["consultation"] = consultation.id
             del data["consultation_id"]
-            serializer = ConsultationDefalutTimingSerializer(data=data)
+            serializer = ConsultationSessionSerializer(data=data)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
@@ -271,12 +271,12 @@ class ConsultationDefaultTimingsView(APIView):
         try:
             data = request.data
             id = data.get("id")
-            consultation_timing = ConsultationDefalutTiming.objects.filter(
+            consultation_session = ConsultationSession.objects.filter(
                 id=id).first()
-            if consultation_timing == None:
+            if consultation_session == None:
                 return Response("Consultation not found", status=status.HTTP_400_BAD_REQUEST)
-            serializer = ConsultationDefalutTimingSerializer(
-                consultation_timing, data=data, partial=True)
+            serializer = ConsultationSessionSerializer(
+                consultation_session, data=data, partial=True)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
@@ -291,13 +291,13 @@ class ConsultationSlotsView(APIView):
     def post(self, request):
         try:
             data = request.data
-            consultation_timing_id = data.get("consultation_timing_id")
-            consultation_timing = ConsultationDefalutTiming.objects.filter(
-                id=consultation_timing_id).first()
-            if consultation_timing == None:
+            consultation_session_id = data.get("consultation_session_id")
+            consultation_session = ConsultationSession.objects.filter(
+                id=consultation_session_id).first()
+            if consultation_session == None:
                 return Response("Consultation timing not found", status=status.HTTP_400_BAD_REQUEST)
-            data["consultation_timing"] = consultation_timing.id
-            del data["consultation_timing_id"]
+            data["consultation_session"] = consultation_session.id
+            del data["consultation_session_id"]
             serializer = ConsultationSlotSerializer(data=data)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
@@ -328,10 +328,10 @@ class ConsultationSlotsView(APIView):
 
 
 class GetSlotsByConsultationTimingView(APIView):
-    def get(self, request, consultation_timing_id):
+    def get(self, request, consultation_session_id):
         try:
             slots = ConsultationSlot.objects.filter(
-                consultation_timing=consultation_timing_id)
+                consultation_session=consultation_session_id)
             serializer = ConsultationSlotSerializer(slots, many=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except (AssertionError, Exception) as err:
@@ -506,6 +506,7 @@ class UpdateClientStaffEmail(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class ResendClientStaffVerificationEmail(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -535,10 +536,8 @@ class ResendClientStaffVerificationEmail(APIView):
                 existing_verification_token = VerificationToken.objects.filter(user=user_id, token_type=TokenType.CLIENT_STAFF_EMAIL_UPDATION_TOKEN).first()
                 update_user_email(user_details, existing_verification_token.updating_value, TokenType.CLIENT_STAFF_EMAIL_UPDATION_TOKEN)
             else:
-                print("111111111111111111")
                 client_staff_activation_email(
                     user_details, password, request_user_name, unit_type, unit_name)
-            print("222222222222")
             return Response("Verification email resend successfully", status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)

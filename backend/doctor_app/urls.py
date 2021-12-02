@@ -11,7 +11,7 @@ urlpatterns = [
     path('search-consultation/', views.SearchConsultationsView.as_view()),
     path('consultation-timing/', views.ConsultationDefaultTimingsView.as_view()),
     path('consultation-slot/', views.ConsultationSlotsView.as_view()),
-    path('slots-by-consultation-timing/<int:consultation_timing_id>',
+    path('slots-by-consultation-timing/<int:consultation_session_id>',
          views.GetSlotsByConsultationTimingView.as_view()),
     path('client-staff/', views.ClientStaffView.as_view()),
     path('update-client-staff-email/', views.UpdateClientStaffEmail.as_view()),
