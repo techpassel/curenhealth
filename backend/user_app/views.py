@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from functools import partial
 from django.contrib.auth import authenticate
 from django.db.utils import IntegrityError
 from rest_framework import status
@@ -8,8 +9,8 @@ from rest_framework.views import APIView
 from auth_app.models import User, VerificationToken
 from auth_app.serializers import RegistrationSerializer
 from utils.email import update_user_email
-from user_app.serializers import HealthRecordsSerializer, SubscriptionSchemesSerializer, UserDetailsSerializer, UserSubscriptionSerializer
-from user_app.models import HealthRecord, HealthRecordTypes, SubscriptionScheme, UserDetail, UserSubscription
+from user_app.serializers import AppointmentSerializer, HealthRecordsSerializer, SubscriptionSchemesSerializer, UserDetailsSerializer, UserSubscriptionSerializer
+from user_app.models import Appointment, HealthRecord, HealthRecordTypes, SubscriptionScheme, UserDetail, UserSubscription
 from utils.common_methods import generate_serializer_error
 import pytz
 
@@ -429,9 +430,31 @@ class GetUsersAllSubscriptionView(APIView):
 class AppointmentView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def post(self, request):
         try:
-            return Response(status=status.HTTP_200_OK)
+            data = request.data
+            serializer = AppointmentSerializer(data=data, partial=True)
+            if not serializer.is_valid():
+                    raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def put(self, request):
+        try:
+            data = request.data
+            appointment_id = data.get("id")
+            appointment = Appointment.objects.filter(id=appointment_id).first()
+            if appointment == None:
+                return Response("Appointment not found", status=status.HTTP_400_BAD_REQUEST)
+            serializer = AppointmentSerializer(appointment, data=data, partial=True)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:

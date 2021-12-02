@@ -46,7 +46,8 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
 
 
 class AppointmentSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = Appointment
-        fileds = ['id', 'user', 'doctor', 'hospital', 'speciality', 'consultation', 'slot', 'status',
+        fields = ['id', 'user', 'doctor', 'hospital', 'speciality', 'consultation', 'slot', 'status',
                   'status_update_remark', 'appointment_type', 'original_appointment_ref', 'created_at', 'updated_at']

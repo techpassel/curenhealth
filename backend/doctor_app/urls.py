@@ -9,7 +9,7 @@ urlpatterns = [
     path('speciality/', views.SpecialityView.as_view()),
     path('consultation/', views.ConsultationView.as_view()),
     path('search-consultation/', views.SearchConsultationsView.as_view()),
-    path('consultation-timing/', views.ConsultationDefaultTimingsView.as_view()),
+    path('consultation-session/', views.ConsultationDefaultTimingsView.as_view()),
     path('consultation-slot/', views.ConsultationSlotsView.as_view()),
     path('slots-by-consultation-timing/<int:consultation_session_id>',
          views.GetSlotsByConsultationTimingView.as_view()),

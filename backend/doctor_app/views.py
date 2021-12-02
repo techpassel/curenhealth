@@ -288,6 +288,8 @@ class ConsultationDefaultTimingsView(APIView):
 
 
 class ConsultationSlotsView(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def post(self, request):
         try:
             data = request.data
