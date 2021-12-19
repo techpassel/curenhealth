@@ -485,6 +485,7 @@ class AppointmentView(APIView):
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class GetAppointmentsByDoctor(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request, doctor_id):
         try:
             appointments = Appointment.objects.filter(doctor=doctor_id)
@@ -496,6 +497,7 @@ class GetAppointmentsByDoctor(APIView):
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class GetAppointmentsByUser(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request, user_id):
         try:
             appointments = Appointment.objects.filter(user=user_id)
@@ -507,6 +509,8 @@ class GetAppointmentsByUser(APIView):
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class DeleteAppointment(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, id):
         try:
             # Only user can delete his/her appointment and that also only when appointment status is Created.
