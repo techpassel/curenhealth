@@ -509,7 +509,9 @@ class GetAppointmentsByUser(APIView):
 class DeleteAppointment(APIView):
     def get(self, request, id):
         try:
-            # Only user can delete his appointment and that also only when appointment status is Created.  
+            # Only user can delete his/her appointment and that also only when appointment status is Created.
+            # Once Doctor, DoctorStaff or HospitalStaff updated the status to "Confirmed","Declined", etc.
+            # He/she won't be able to delete it.However he will have option to cancel it.  
             appointment = Appointment.objects.get(id=id)
             if appointment.status == AppointmentStatus.CREATED:
                 appointment.delete()
