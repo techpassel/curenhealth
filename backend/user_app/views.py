@@ -18,6 +18,8 @@ from utils.common_methods import generate_serializer_error
 import pytz
 
 # Create your views here.
+
+
 class UserDetailsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -53,7 +55,7 @@ class UserDetailsView(APIView):
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
     def put(self, request):
         try:
             user_details = UserDetail.objects.filter(
@@ -70,6 +72,7 @@ class UserDetailsView(APIView):
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class GetUserDetailsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -112,7 +115,8 @@ class UpdateUserView(APIView):
                 if key in user_data:
                     return Response(f"{key} can't be changed from this api.", status=status.HTTP_403_FORBIDDEN)
             user = User.objects.get(id=user_data['id'])
-            serializer = RegistrationSerializer(user, data=user_data, partial=True)
+            serializer = RegistrationSerializer(
+                user, data=user_data, partial=True)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
@@ -186,7 +190,7 @@ class UpdateEmailRequestView(APIView):
             if user.email != user_data['current_email']:
                 return Response("Current email did not matched with your stored data.", status=status.HTTP_400_BAD_REQUEST)
             update_user_email(user, user_data["new_email"])
-            
+
             return Response("A verification email is send to your updated email id. Please verify your email to link it with your account.", status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
@@ -314,22 +318,26 @@ class DeleteHealthRecordsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class GetAllSubscriptionSchemesView(APIView):
-    #It's create,Update and Delete APIs are created in admin_app as only admin can perform those actions
+    # It's create,Update and Delete APIs are created in admin_app as only admin can perform those actions
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         try:
             subscription_schemes = SubscriptionScheme.objects.all()
-            serializer = SubscriptionSchemesSerializer(subscription_schemes, many=True)
+            serializer = SubscriptionSchemesSerializer(
+                subscription_schemes, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class UserSubscriptionView(APIView):
     permission_classes = [IsAuthenticated]
+
     def post(self, request):
         try:
             data = request.data
@@ -339,13 +347,16 @@ class UserSubscriptionView(APIView):
             data["user"] = user.id
             # We will check if any other subscription is active. If yes then we won't activate it currently
             # Otherwise we will activate it.
-            active_subscriptions = UserSubscription.objects.filter(user=user_id, active=True)
+            active_subscriptions = UserSubscription.objects.filter(
+                user=user_id, active=True)
             if "active" in data and data["active"] == True:
                 data["valid_from"] = datetime.today().date()
                 for i in range(len(active_subscriptions)):
-                    serializer1 = UserSubscriptionSerializer(active_subscriptions[i], data={"active": False}, partial=True)
+                    serializer1 = UserSubscriptionSerializer(active_subscriptions[i], data={
+                                                             "active": False}, partial=True)
                     if not serializer1.is_valid():
-                        raise Exception(generate_serializer_error(serializer1.errors))
+                        raise Exception(
+                            generate_serializer_error(serializer1.errors))
                     serializer1.save()
             else:
                 if len(active_subscriptions) == 0:
@@ -353,12 +364,15 @@ class UserSubscriptionView(APIView):
                     data["valid_from"] = datetime.today().date()
                 else:
                     data["active"] = False
-                    data["valid_from"] = active_subscriptions[0]["valid_till"] + timedelta(days=1)
+                    data["valid_from"] = active_subscriptions[0]["valid_till"] + \
+                        timedelta(days=1)
 
             subscription_scheme_id = data.get("subscription")
-            subscription_scheme = SubscriptionScheme.objects.get(id=subscription_scheme_id)
+            subscription_scheme = SubscriptionScheme.objects.get(
+                id=subscription_scheme_id)
             subscription_validity = subscription_scheme.validity
-            data["valid_till"] = data["valid_from"] + timedelta(days=subscription_validity)
+            data["valid_till"] = data["valid_from"] + \
+                timedelta(days=subscription_validity)
             serializer = UserSubscriptionSerializer(data=data)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
@@ -376,33 +390,40 @@ class ActivateUserSubscription(APIView):
     def put(self, request):
         try:
             id = request.data.get("id")
-            user_subscription = UserSubscription.objects.get(id=id) 
+            user_subscription = UserSubscription.objects.get(id=id)
             user_id = user_subscription.user.id
             if user_id != request.data.get("user_id"):
                 raise Exception("User information is incorrect.")
             subscription_scheme_id = user_subscription.subscription.id
-            subscription_scheme = SubscriptionScheme.objects.get(id=subscription_scheme_id)
+            subscription_scheme = SubscriptionScheme.objects.get(
+                id=subscription_scheme_id)
             subscription_validity = subscription_scheme.validity
-            active_subscriptions = UserSubscription.objects.filter(user=user_id, active=True)
+            active_subscriptions = UserSubscription.objects.filter(
+                user=user_id, active=True)
             valid_from = datetime.today().date()
             valid_till = valid_from + timedelta(days=subscription_validity)
-            serializer = UserSubscriptionSerializer(user_subscription, data={"valid_from": valid_from, "valid_till": valid_till, "active": True}, partial=True)
+            serializer = UserSubscriptionSerializer(user_subscription, data={
+                                                    "valid_from": valid_from, "valid_till": valid_till, "active": True}, partial=True)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
             # Deactivating all previously activated user-subscriptions
-            active_subscriptions = UserSubscription.objects.filter(user=user_id, active=True).exclude(id=id)
+            active_subscriptions = UserSubscription.objects.filter(
+                user=user_id, active=True).exclude(id=id)
             for i in range(len(active_subscriptions)):
-                serializer1 = UserSubscriptionSerializer(active_subscriptions[i], data={"active": False}, partial=True)
+                serializer1 = UserSubscriptionSerializer(active_subscriptions[i], data={
+                                                         "active": False}, partial=True)
                 if not serializer1.is_valid():
-                    raise Exception(generate_serializer_error(serializer1.errors))
+                    raise Exception(
+                        generate_serializer_error(serializer1.errors))
                 serializer1.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
+
 class GetUserSubscriptionDetailsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -416,13 +437,15 @@ class GetUserSubscriptionDetailsView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class GetUsersAllSubscriptionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, user_id):
         try:
             user_subscription = UserSubscription.objects.filter(user=user_id)
-            serializer = UserSubscriptionSerializer(user_subscription, many=True)
+            serializer = UserSubscriptionSerializer(
+                user_subscription, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
@@ -438,14 +461,16 @@ class AppointmentView(APIView):
             data = request.data
             serializer = AppointmentSerializer(data=data, partial=True)
             if not serializer.is_valid():
-                    raise Exception(generate_serializer_error(serializer.errors))
+                raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
             # While creating an appointments we need to update the status of slot also.
             slot_id = data.get('slot')
             slot = ConsultationSlot.objects.get(id=slot_id)
-            slot_serializer = ConsultationSlotSerializer(slot, data={"availablity": SlotAvailablity.BOOKED}, partial=True)
+            slot_serializer = ConsultationSlotSerializer(
+                slot, data={"availablity": SlotAvailablity.BOOKED}, partial=True)
             if not slot_serializer.is_valid():
-                    raise Exception(generate_serializer_error(slot_serializer.errors))
+                raise Exception(generate_serializer_error(
+                    slot_serializer.errors))
             slot_serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
@@ -458,12 +483,14 @@ class AppointmentView(APIView):
             data = request.data
             appointment_id = data.get("id")
             # When a doctor or doctor_staff update the AppointmentStatus to "Declined" or "Cancelled".
-            # Ask him/her whether to make appointment slot available again for other users or make it cancelled. 
-            make_slot_available = data.get("make_slot_available") if "make_slot_available" in data else False
+            # Ask him/her whether to make appointment slot available again for other users or make it cancelled.
+            make_slot_available = data.get(
+                "make_slot_available") if "make_slot_available" in data else False
             appointment = Appointment.objects.filter(id=appointment_id).first()
             if appointment == None:
                 return Response("Appointment not found", status=status.HTTP_400_BAD_REQUEST)
-            serializer = AppointmentSerializer(appointment, data=data, partial=True)
+            serializer = AppointmentSerializer(
+                appointment, data=data, partial=True)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
@@ -474,9 +501,11 @@ class AppointmentView(APIView):
                     slot_id = serializer.data.get('slot')
                     slot = ConsultationSlot.objects.get(id=slot_id)
                     availablity = SlotAvailablity.AVAILABLE if make_slot_available == True else SlotAvailablity.CANCELLED
-                    slot_serializer = ConsultationSlotSerializer(slot, data={"availablity": availablity}, partial=True)
+                    slot_serializer = ConsultationSlotSerializer(
+                        slot, data={"availablity": availablity}, partial=True)
                     if not slot_serializer.is_valid():
-                        raise Exception(generate_serializer_error(slot_serializer.errors))
+                        raise Exception(generate_serializer_error(
+                            slot_serializer.errors))
                     slot_serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
@@ -484,8 +513,10 @@ class AppointmentView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class GetAppointmentsByDoctor(APIView):
     permission_classes = [IsAuthenticated]
+
     def get(self, request, doctor_id):
         try:
             appointments = Appointment.objects.filter(doctor=doctor_id)
@@ -496,8 +527,10 @@ class GetAppointmentsByDoctor(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class GetAppointmentsByUser(APIView):
     permission_classes = [IsAuthenticated]
+
     def get(self, request, user_id):
         try:
             appointments = Appointment.objects.filter(user=user_id)
@@ -508,6 +541,7 @@ class GetAppointmentsByUser(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class DeleteAppointment(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -515,29 +549,36 @@ class DeleteAppointment(APIView):
         try:
             # Only user can delete his/her appointment and that also only when appointment status is Created.
             # Once Doctor, DoctorStaff or HospitalStaff updated the status to "Confirmed","Declined", etc.
-            # He/she won't be able to delete it.However he will have option to cancel it.  
+            # He/she won't be able to delete it.However he will have option to cancel it.
             appointment = Appointment.objects.get(id=id)
             if appointment.status == AppointmentStatus.CREATED:
+                slot_id = appointment.slot.id
                 appointment.delete()
-            # While deleting an appointments we need to update the status of slot also.
-            # That needs to be implemented.
+                slot = ConsultationSlot.objects.get(id=slot_id)
+                slot_serializer = ConsultationSlotSerializer(
+                    slot, data={"availablity": SlotAvailablity.AVAILABLE}, partial=True)
+                if not slot_serializer.is_valid():
+                    raise Exception(generate_serializer_error(
+                        slot_serializer.errors))
+                slot_serializer.save()
             return Response(status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class PrescriptionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         try:
-            data = request.data
-            serializer = AppointmentSerializer(data=data, partial=True)
-            if not serializer.is_valid():
-                    raise Exception(generate_serializer_error(serializer.errors))
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            # data = request.data
+            # serializer = AppointmentSerializer(data=data, partial=True)
+            # if not serializer.is_valid():
+            #     raise Exception(generate_serializer_error(serializer.errors))
+            # serializer.save()
+            return Response(status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
