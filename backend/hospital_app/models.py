@@ -95,7 +95,7 @@ class CheckupDefalutTiming(TimeStampMixin):
 class AppointmentStatus(ChoiceEnum):
     CREATED = 'created'
     CONFIRMED = 'confirmed'
-    REJECTED = 'rejected'
+    DECLINED = 'declined'
     CANCELLED = 'cancelled'
     COMPLETED = 'completed'
 
@@ -122,7 +122,6 @@ class CheckupAppointment(TimeStampMixin):
     checkup_plan = models.ForeignKey(CheckupPlan, on_delete=models.PROTECT)
     desired_date = models.DateField()
     desired_time = models.CharField(max_length=256)
-    # In case of decline please mention the reason and next available timing
     original_checkupappointment_ref = models.ForeignKey(
         'self', on_delete=models.CASCADE, null=True, blank=True, related_name="original_checkup_appointment_ref")
     sample_collection_time = models.DateTimeField()

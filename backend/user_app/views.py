@@ -8,6 +8,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from auth_app.models import User, VerificationToken
 from auth_app.serializers import RegistrationSerializer
+from doctor_app.models import ConsultationSlot, SlotAvailablity
+from doctor_app.serializers import ConsultationSlotSerializer
+from hospital_app.models import AppointmentStatus
 from utils.email import update_user_email
 from user_app.serializers import AppointmentSerializer, HealthRecordsSerializer, SubscriptionSchemesSerializer, UserDetailsSerializer, UserSubscriptionSerializer
 from user_app.models import Appointment, HealthRecord, HealthRecordTypes, SubscriptionScheme, UserDetail, UserSubscription
@@ -437,6 +440,13 @@ class AppointmentView(APIView):
             if not serializer.is_valid():
                     raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
+            # While creating an appointments we need to update the status of slot also.
+            slot_id = data.get('slot')
+            slot = ConsultationSlot.objects.get(id=slot_id)
+            slot_serializer = ConsultationSlotSerializer(slot, data={"availablity": SlotAvailablity.BOOKED}, partial=True)
+            if not slot_serializer.is_valid():
+                    raise Exception(generate_serializer_error(slot_serializer.errors))
+            slot_serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
@@ -447,12 +457,79 @@ class AppointmentView(APIView):
         try:
             data = request.data
             appointment_id = data.get("id")
+            # When a doctor or doctor_staff update the AppointmentStatus to "Declined" or "Cancelled".
+            # Ask him/her whether to make appointment slot available again for other users or make it cancelled. 
+            make_slot_available = data.get("make_slot_available") if "make_slot_available" in data else False
             appointment = Appointment.objects.filter(id=appointment_id).first()
             if appointment == None:
                 return Response("Appointment not found", status=status.HTTP_400_BAD_REQUEST)
             serializer = AppointmentSerializer(appointment, data=data, partial=True)
             if not serializer.is_valid():
                 raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            # While updating status of appointments we need to update the status of slot also.
+            if "status" in data:
+                appointment_status = AppointmentStatus[data.get('status')]
+                if appointment_status == AppointmentStatus.DECLINED or appointment_status == AppointmentStatus.CANCELLED:
+                    slot_id = serializer.data.get('slot')
+                    slot = ConsultationSlot.objects.get(id=slot_id)
+                    availablity = SlotAvailablity.AVAILABLE if make_slot_available == True else SlotAvailablity.CANCELLED
+                    slot_serializer = ConsultationSlotSerializer(slot, data={"availablity": availablity}, partial=True)
+                    if not slot_serializer.is_valid():
+                        raise Exception(generate_serializer_error(slot_serializer.errors))
+                    slot_serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetAppointmentsByDoctor(APIView):
+    def get(self, request, doctor_id):
+        try:
+            appointments = Appointment.objects.filter(doctor=doctor_id)
+            serializer = AppointmentSerializer(appointments, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetAppointmentsByUser(APIView):
+    def get(self, request, user_id):
+        try:
+            appointments = Appointment.objects.filter(user=user_id)
+            serializer = AppointmentSerializer(appointments, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class DeleteAppointment(APIView):
+    def get(self, request, id):
+        try:
+            # Only user can delete his appointment and that also only when appointment status is Created.  
+            appointment = Appointment.objects.get(id=id)
+            if appointment.status == AppointmentStatus.CREATED:
+                appointment.delete()
+            # While deleting an appointments we need to update the status of slot also.
+            # That needs to be implemented.
+            return Response(status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class PrescriptionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            data = request.data
+            serializer = AppointmentSerializer(data=data, partial=True)
+            if not serializer.is_valid():
+                    raise Exception(generate_serializer_error(serializer.errors))
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:

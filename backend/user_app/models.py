@@ -76,7 +76,7 @@ class Appointment(TimeStampMixin):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     doctor = models.ForeignKey(Doctor, on_delete=models.SET_NULL, null=True, blank=True)
     hospital = models.ForeignKey(Hospital, on_delete=models.SET_NULL, null=True, blank=True)
-    speciality = models.ForeignKey(Speciality, on_delete=models.SET_NULL, null=True, blank=True)
+    # speciality = models.ForeignKey(Speciality, on_delete=models.SET_NULL, null=True, blank=True)
     consultation = models.ForeignKey(Consultation, on_delete=models.SET_NULL, null=True, blank=True)
     slot = models.OneToOneField(ConsultationSlot, on_delete=models.SET_NULL, null=True, blank=True)
     status = EnumChoiceField(AppointmentStatus, default=AppointmentStatus.CREATED)

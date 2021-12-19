@@ -71,7 +71,7 @@ class ConsultationSlot(TimeStampMixin):
     slot = models.CharField(max_length=15)
     # Slot example = 10:15am (In this case if 'avg_consultation_time' is 15 mins then next slot will be 10:30am) 
     availablity = EnumChoiceField(SlotAvailablity)
-    # We will store slot value inthe form of "00:30AM", "04:45PM" etc.(minutes in multiple of consultation's slot_duration).
+    # We will store slot value in the form of "00:30AM", "04:45PM" etc.(minutes in multiple of consultation's slot_duration).
     # We will run cron job every sunday night and auto set ConsultationSlot based on ConsultationSession and consultation's slot_duration.
     # We will do it in such a way that user users can see slot availablity for next 4 weeks. 
     
