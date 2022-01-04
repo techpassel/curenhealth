@@ -13,7 +13,7 @@ from doctor_app.serializers import ConsultationSlotSerializer
 from hospital_app.models import AppointmentStatus
 from utils.email import update_user_email
 from user_app.serializers import AppointmentSerializer, HealthRecordsSerializer, PrescriptionSerializer, SubscriptionSchemesSerializer, UserDetailsSerializer, UserSubscriptionSerializer
-from user_app.models import Appointment, HealthRecord, HealthRecordTypes, Prescription, SubscriptionScheme, UserDetail, UserSubscription
+from user_app.models import Appointment, HealthRecord, HealthRecordTypes, Prescription, PrescriptionDocument, SubscriptionScheme, UserDetail, UserSubscription
 from utils.common_methods import generate_serializer_error
 import pytz
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -574,8 +574,10 @@ class PrescriptionView(APIView):
 
     def post(self, request):
         try:
-            data=request.data
-            prescription_serializer = PrescriptionSerializer(data=data, partial=True)
+            documents = request.FILES.getlist('files', None)
+            data = request.data
+            del data["files"]
+            prescription_serializer = PrescriptionSerializer(data=data, context={'documents': documents}, partial=True)
             if prescription_serializer.is_valid():
                 prescription_serializer.save()
             return Response(prescription_serializer.data, status=status.HTTP_201_CREATED)
@@ -598,6 +600,7 @@ class GetPrescriptionsByAppointmentView(APIView):
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class DeletePrescriptionView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -607,6 +610,23 @@ class DeletePrescriptionView(APIView):
             if prescription == None:
                 return Response("Prescription not found", status=status.HTTP_400_BAD_REQUEST)
             prescription.delete()
+            return Response(status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# This API will be used to delete a single document of the prescription
+# If you want to delete entire prescription then call above API DeletePrescriptionView
+class DeletePrescriptionDocumentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, id):
+        try:
+            prescription_doc = PrescriptionDocument.objects.filter(id=id).first()
+            if prescription_doc == None:
+                return Response("Prescription document not found", status=status.HTTP_400_BAD_REQUEST)
+            prescription_doc.delete()
             return Response(status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)

@@ -25,7 +25,8 @@ urlpatterns = [
     path('delete-appointment/<int:id>', views.DeleteAppointmentView.as_view()),
     path('prescription/', views.PrescriptionView.as_view()),
     path('prescription-by-appointment/<int:appointment_id>', views.GetPrescriptionsByAppointmentView.as_view()),
-    path('delete-prescription/<int:id>', views.DeletePrescriptionView.as_view())
+    path('delete-prescription/<int:id>', views.DeletePrescriptionView.as_view()),
+    path('delete-prescription-document/<int:id>', views.DeletePrescriptionDocumentView.as_view())
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

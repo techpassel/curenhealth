@@ -89,15 +89,29 @@ class Appointment(TimeStampMixin):
 
 class Prescription(TimeStampMixin):
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
-    # file_path = models.TextField()
-    # We will use "file_path" field later to store path of stored file on AWS S3 bucket 
-    file_path = models.FileField(blank=False, null=False, upload_to='prescriptions/%Y-%m-%d')
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    def __unicode__(self):
-        return '%s' % (self.file_path.name)
+    
+        # We don't need to delete PrescriptionDocument as models.CASCADE is applied in it for prescription
+        # i.e whenever we will delete Prescription from database PrescriptionDocument will automatically be deleted from database
+        # But in that case delete method of PrescriptionDocument won't be called and hence uploaded documents 
+        # won't be deleted from the "uploads" folder.So we need to manually delete uploaded documents.Following code is for that purpose only.
     def delete(self, *args, **kwargs):
-        os.remove(os.path.join(settings.MEDIA_ROOT, self.file_path.name))
+        documents = PrescriptionDocument.objects.filter(prescription=self.pk) 
+        for doc in documents:
+            os.remove(os.path.join(settings.MEDIA_ROOT, doc.document.name))
         super(Prescription,self).delete(*args,**kwargs)
+
+# This model doesn't have any significance on its own.
+# It is created just to enable multiple documents upload feature in Prescription model.
+class PrescriptionDocument(TimeStampMixin):
+    prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE, related_name="prescription_relates_document")
+    document = models.FileField(blank=False, null=False, upload_to='prescriptions/%Y-%m-%d')
+    def __unicode__(self):
+        return '%s' % (self.document.name)
+
+    def delete(self, *args, **kwargs):
+        os.remove(os.path.join(settings.MEDIA_ROOT, self.document.name))
+        super(PrescriptionDocument, self).delete(*args,**kwargs)
 
 class PrescribedMedicine(TimeStampMixin):
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
