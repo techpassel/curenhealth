@@ -2,7 +2,7 @@ from django.db.models import fields
 from rest_framework import serializers
 from enumchoicefield import EnumChoiceField
 from auth_app.models import User
-from .models import Appointment, HealthRecord, HealthRecordTypes, SubscriptionScheme, UserDetail, UserSubscription
+from .models import Appointment, HealthRecord, HealthRecordTypes, Prescription, SubscriptionScheme, UserDetail, UserSubscription
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -51,3 +51,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
         model = Appointment
         fields = ['id', 'user', 'doctor', 'hospital', 'consultation', 'slot', 'status',
                   'status_update_remark', 'appointment_type', 'original_appointment_ref', 'created_at', 'updated_at']
+
+class PrescriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Prescription
+        fields = ['id', 'appointment', 'file_path', 'uploaded_by']

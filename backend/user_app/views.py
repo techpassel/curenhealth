@@ -12,11 +12,11 @@ from doctor_app.models import ConsultationSlot, SlotAvailablity
 from doctor_app.serializers import ConsultationSlotSerializer
 from hospital_app.models import AppointmentStatus
 from utils.email import update_user_email
-from user_app.serializers import AppointmentSerializer, HealthRecordsSerializer, SubscriptionSchemesSerializer, UserDetailsSerializer, UserSubscriptionSerializer
-from user_app.models import Appointment, HealthRecord, HealthRecordTypes, SubscriptionScheme, UserDetail, UserSubscription
+from user_app.serializers import AppointmentSerializer, HealthRecordsSerializer, PrescriptionSerializer, SubscriptionSchemesSerializer, UserDetailsSerializer, UserSubscriptionSerializer
+from user_app.models import Appointment, HealthRecord, HealthRecordTypes, Prescription, SubscriptionScheme, UserDetail, UserSubscription
 from utils.common_methods import generate_serializer_error
 import pytz
-
+from rest_framework.parsers import MultiPartParser, FormParser
 # Create your views here.
 
 
@@ -514,7 +514,7 @@ class AppointmentView(APIView):
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class GetAppointmentsByDoctor(APIView):
+class GetAppointmentsByDoctorView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, doctor_id):
@@ -528,7 +528,7 @@ class GetAppointmentsByDoctor(APIView):
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class GetAppointmentsByUser(APIView):
+class GetAppointmentsByUserView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, user_id):
@@ -542,7 +542,7 @@ class GetAppointmentsByUser(APIView):
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class DeleteAppointment(APIView):
+class DeleteAppointmentView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, id):
@@ -570,14 +570,43 @@ class DeleteAppointment(APIView):
 
 class PrescriptionView(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request):
         try:
-            # data = request.data
-            # serializer = AppointmentSerializer(data=data, partial=True)
-            # if not serializer.is_valid():
-            #     raise Exception(generate_serializer_error(serializer.errors))
-            # serializer.save()
+            data=request.data
+            prescription_serializer = PrescriptionSerializer(data=data, partial=True)
+            if prescription_serializer.is_valid():
+                prescription_serializer.save()
+            return Response(prescription_serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class GetPrescriptionsByAppointmentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, appointment_id):
+        try:
+            prescriptions = Prescription.objects.filter(appointment=appointment_id)
+            prescription_serializer = PrescriptionSerializer(prescriptions, many=True)
+            return Response(prescription_serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class DeletePrescriptionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, id):
+        try:
+            prescription = Prescription.objects.filter(id=id).first()
+            if prescription == None:
+                return Response("Prescription not found", status=status.HTTP_400_BAD_REQUEST)
+            prescription.delete()
             return Response(status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)

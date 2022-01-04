@@ -1,3 +1,4 @@
+import os
 from django.db import models
 from auth_app.models import TimeStampMixin, User
 from doctor_app.models import Consultation, ConsultationSlot, Doctor, Speciality, Hospital
@@ -5,6 +6,7 @@ from hospital_app.models import Hospital, Address, AppointmentStatus
 from enumchoicefield import ChoiceEnum, EnumChoiceField
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.fields import HStoreField
+from django.conf import settings
 
 # Create your models here.
 class SubscriptionTypes(ChoiceEnum):
@@ -87,16 +89,24 @@ class Appointment(TimeStampMixin):
 
 class Prescription(TimeStampMixin):
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
-    file_path = models.TextField()
+    # file_path = models.TextField()
+    # We will use "file_path" field later to store path of stored file on AWS S3 bucket 
+    file_path = models.FileField(blank=False, null=False, upload_to='prescriptions/%Y-%m-%d')
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    def __unicode__(self):
+        return '%s' % (self.file_path.name)
+    def delete(self, *args, **kwargs):
+        os.remove(os.path.join(settings.MEDIA_ROOT, self.file_path.name))
+        super(Prescription,self).delete(*args,**kwargs)
 
 class PrescribedMedicine(TimeStampMixin):
+    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
     name = models.CharField(max_length=256)
     quantity = models.PositiveIntegerField()
     direction = models.CharField(max_length=256, blank=True)
     duration = models.CharField(max_length=100, blank=True)
     notes = models.TextField(blank=True)
-    # In notes doctor can write for what purpose this medicine is given etc.
+    # In notes doctor can write for what purpose the medicine is given etc.
 
 class CommunicationTypes(ChoiceEnum):
      DOCTOR_AND_CONSULTATION_RELATED = 'doctor_and_consultation_related'
