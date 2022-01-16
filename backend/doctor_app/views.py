@@ -5,11 +5,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from auth_app.serializers import RegistrationSerializer
 from auth_app.models import TokenType, User, UserType, VerificationToken
-from user_app.serializers import UserSerializer
 from utils.email import client_staff_activation_email, update_user_email
 from doctor_app.serializers import ClientStaffSerializer, ConsultationSessionSerializer, ConsultationSerializer, ConsultationSlotSerializer, DoctorSerializer, DoctorsBriefSerializer, QualificationSerializer, SpecialitySerializer
 from hospital_app.models import Address, Hospital
-from doctor_app.models import ClientStaff, ClientStaffPermissions, Consultation, ConsultationSession, ConsultationSlot, Doctor, Qualification, Speciality, ConsultationType
+from doctor_app.models import ClientStaff, Consultation, ConsultationSession, ConsultationSlot, Doctor, Qualification, Speciality, ConsultationType
 from utils.common_methods import generate_serializer_error, get_client_staff_default_password, verify_clientstaff_permissions
 
 # Create your views here.
@@ -230,7 +229,7 @@ class SearchConsultationsView(APIView):
                     doctor=doctor_id)
             else:
                 ct = None
-                # Method to get value of EnumChoiceFields to use in model objects.
+                # Method to get value of EnumChoiceFields to use in model objects.Simple text value will thorw error.
                 for r in ConsultationType:
                     if ConsultationType[consultation_type] == r:
                         ct = r

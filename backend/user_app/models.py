@@ -7,7 +7,7 @@ from enumchoicefield import ChoiceEnum, EnumChoiceField
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.postgres.fields import HStoreField
 from django.conf import settings
-
+import uuid
 # Create your models here.
 class SubscriptionTypes(ChoiceEnum):
     GENERAL = 'general'
@@ -91,10 +91,10 @@ class Prescription(TimeStampMixin):
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     
-        # We don't need to delete PrescriptionDocument as models.CASCADE is applied in it for prescription
-        # i.e whenever we will delete Prescription from database PrescriptionDocument will automatically be deleted from database
-        # But in that case delete method of PrescriptionDocument won't be called and hence uploaded documents 
-        # won't be deleted from the "uploads" folder.So we need to manually delete uploaded documents.Following code is for that purpose only.
+    # We don't need to delete PrescriptionDocument as models.CASCADE is applied in it for prescription
+    # i.e whenever we will delete Prescription from database PrescriptionDocument will automatically be deleted from database
+    # But in that case delete method of PrescriptionDocument won't be called and hence uploaded documents 
+    # won't be deleted from the "uploads" folder.So we need to manually delete uploaded documents.Following code is for that purpose only.
     def delete(self, *args, **kwargs):
         documents = PrescriptionDocument.objects.filter(prescription=self.pk) 
         for doc in documents:
@@ -104,8 +104,8 @@ class Prescription(TimeStampMixin):
 # This model doesn't have any significance on its own.
 # It is created just to enable multiple documents upload feature in Prescription model.
 class PrescriptionDocument(TimeStampMixin):
-    prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE, related_name="prescription_relates_document")
-    document = models.FileField(blank=False, null=False, upload_to='prescriptions/%Y-%m-%d')
+    prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE, related_name="prescription_related_document")
+    document = models.FileField(blank=False, null=False, upload_to='prescription/%Y-%m-%d')
     def __unicode__(self):
         return '%s' % (self.document.name)
 
@@ -117,24 +117,34 @@ class PrescribedMedicine(TimeStampMixin):
     appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE)
     name = models.CharField(max_length=256)
     quantity = models.PositiveIntegerField()
-    direction = models.CharField(max_length=256, blank=True)
+    direction_of_use = models.CharField(max_length=256, blank=True)
     duration = models.CharField(max_length=100, blank=True)
     notes = models.TextField(blank=True)
-    # In notes doctor can write for what purpose the medicine is given etc.
+    # In notes doctor can write for what purpose the medicine is prescribed etc.
+
+class CommmunicationReferenceTypes(ChoiceEnum): 
+    NONE = 'none'
+    DOCTOR_RELATED = 'doctor_related'
+    CONSULTATION_RELATED = 'consultation_related'
+    HOSPITAL_RELATED = 'hospital_related'
+    PATHLAB_RELATED = 'pathlab_related'
 
 class CommunicationTypes(ChoiceEnum):
-     DOCTOR_AND_CONSULTATION_RELATED = 'doctor_and_consultation_related'
-     HOSPITAL_RELATED = 'hospital_related'
-     PATHLAB_RELATED = 'pathlab_related'
-     HELP_SUPPORT = 'help_support'
-     COMPLAINT = 'complaint'
-     MEDICINE_PURCHASE_RELATED = 'purchased_medicine_related'
+    GENERAL = 'general'
+    HELP_SUPPORT = 'help_support'
+    COMPLAINT = 'complaint'
+    MEDICINE_PURCHASE_RELATED = 'purchased_medicine_related'
 
 class Communication(TimeStampMixin):
     from_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="communication_from_user")
     to_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="communication_to_user")
-    communication_type = EnumChoiceField(CommunicationTypes)
-    
+    communication_type = EnumChoiceField(CommunicationTypes, default=CommunicationTypes.GENERAL)
+    reference_type = EnumChoiceField(CommmunicationReferenceTypes, default = CommmunicationReferenceTypes.NONE)
+    reference_id = models.IntegerField()
+    # reference_type and reference_id fields should be used to give reference.For example suppose we want to consult a doctor regarding a consultation then 
+    # communication_type will be "General", reference_type will be "CONSULTATION_RELATED" and reference_id will be the reference id of the consultation regarding which we wanted to communicate with the doctor 
+    # And if we want to consulta with the doctor regarding if he/she will be consultaing next day or not then in such case again consultation type will be General, reference_type will be None and reference _id will also be none 
+
 class CommunicationMute(TimeStampMixin):
     communication = models.ForeignKey(Communication, on_delete=models.CASCADE)
     muted_for = models.ForeignKey(User, on_delete=models.CASCADE, related_name="communication_muted_for")
@@ -145,10 +155,32 @@ class CommunicationShare(TimeStampMixin):
     shared_with = models.ForeignKey(User, on_delete=models.CASCADE, related_name="communication_share_with")
     shared_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="communication_share_by")
     
-class Message(TimeStampMixin):
+class CommunicationMessage(TimeStampMixin):
+    communication = models.ForeignKey(Communication, on_delete=models.CASCADE, related_name="message_for_communication")
     text = models.TextField()
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    files_path = ArrayField(models.TextField())
+    from_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # We don't need to delete CommunicationMessageDocument as models.CASCADE is applied in it for CommunicationMessage
+    # i.e whenever we will delete CommunicationMessage from database CommunicationMessageDocument will automatically be deleted from database
+    # But in that case delete method of CommunicationMessageDocument won't be called and hence uploaded documents 
+    # won't be deleted from the "uploads" folder.So we need to manually delete uploaded documents.Following code is for that purpose only.
+    def delete(self, *args, **kwargs):
+        documents = CommunicationMessageDocument.objects.filter(communication_message=self.pk) 
+        for doc in documents:
+            os.remove(os.path.join(settings.MEDIA_ROOT, doc.document.name))
+        super(CommunicationMessage,self).delete(*args,**kwargs)
+
+# This model doesn't have any significance on its own.
+# It is created just to enable multiple documents upload feature in CommunicationMessage model.
+class CommunicationMessageDocument(TimeStampMixin):
+    communication_message = models.ForeignKey(CommunicationMessage, on_delete=models.CASCADE, related_name="communication_related_document")
+    document = models.FileField(blank=False, null=False, upload_to='communication/%Y-%m-%d')
+    def __unicode__(self):
+        return '%s' % (self.document.name)
+
+    def delete(self, *args, **kwargs):
+        os.remove(os.path.join(settings.MEDIA_ROOT, self.document.name))
+        super(CommunicationMessageDocument, self).delete(*args,**kwargs)
 
 class FeedbackTypes(ChoiceEnum):
     COMMUNICATION = 'communication'
@@ -161,9 +193,10 @@ class FeedbackTypes(ChoiceEnum):
 class Feedback(TimeStampMixin):
     from_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     type = EnumChoiceField(FeedbackTypes)
-    reference_id = models.UUIDField(primary_key=False)
-    # Here we have used UUIDField since it can be aything like Appointment_id, Doctor_id, Communication_id etc
-    overall_rating = models.FloatField()
+    reference_id = models.IntegerField()
+    # Here we have used integer field instead of foreign key since it can be aything among Appointment_id, Doctor_id, Communication_id, Consultation_id etc
+    feedback = models.TextField(blank=True)
+    overall_rating = models.IntegerField()
     subtype_ratings = models.JSONField()
-    # subtype_ratings will have following fields - rating, remark 
+    # subtype_ratings will have following fields - type, rating, remark 
     

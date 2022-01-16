@@ -12,8 +12,8 @@ from doctor_app.models import ConsultationSlot, SlotAvailablity
 from doctor_app.serializers import ConsultationSlotSerializer
 from hospital_app.models import AppointmentStatus
 from utils.email import update_user_email
-from user_app.serializers import AppointmentSerializer, HealthRecordsSerializer, PrescriptionSerializer, SubscriptionSchemesSerializer, UserDetailsSerializer, UserSubscriptionSerializer
-from user_app.models import Appointment, HealthRecord, HealthRecordTypes, Prescription, PrescriptionDocument, SubscriptionScheme, UserDetail, UserSubscription
+from user_app.serializers import AppointmentSerializer, CommunicationMessageSerializer, CommunicationSerializer, FeedbackSerializer, HealthRecordsSerializer, PrescribedMedicineSerializer, PrescriptionSerializer, SubscriptionSchemesSerializer, UserDetailsSerializer, UserSubscriptionSerializer
+from user_app.models import Appointment, CommmunicationReferenceTypes, CommunicationTypes, Feedback, FeedbackTypes, HealthRecord, HealthRecordTypes, PrescribedMedicine, Prescription, PrescriptionDocument, SubscriptionScheme, UserDetail, UserSubscription
 from utils.common_methods import generate_serializer_error
 import pytz
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -308,10 +308,10 @@ class DeleteHealthRecordsView(APIView):
 
     def delete(self, request, id):
         try:
-            health_records = HealthRecord.objects.filter(id=id).first()
-            if health_records == None:
+            health_record = HealthRecord.objects.filter(id=id).first()
+            if health_record == None:
                 return Response("Health Record not found", status=status.HTTP_400_BAD_REQUEST)
-            health_records.delete()
+            health_record.delete()
             return Response(status=status.HTTP_200_OK)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
@@ -628,6 +628,178 @@ class DeletePrescriptionDocumentView(APIView):
                 return Response("Prescription document not found", status=status.HTTP_400_BAD_REQUEST)
             prescription_doc.delete()
             return Response(status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class PrescribedMedicineView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            data = request.data
+            serializer = PrescribedMedicineSerializer(data=data, partial=True)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def put(self, request):
+        try:
+            data = request.data
+            id = data.get("id")
+            prescribed_medicine = PrescribedMedicine.objects.filter(pk=id).first()
+            if prescribed_medicine == None:
+                return Response("Prescribed medicine not found.", status=status.HTTP_400_BAD_REQUEST)
+            
+            serializer = PrescribedMedicineSerializer(prescribed_medicine, data=data, partial=True)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data ,status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetPrescribedMedicineByAppointmentIdView(APIView):
+    permisssion_classes = [IsAuthenticated]
+
+    def get(self, request, appointment_id):
+        try:
+            prescribed_medicines = PrescribedMedicine.objects.filter(appointment=appointment_id)
+            prescription_medicine_serializer = PrescribedMedicineSerializer(prescribed_medicines, many=True)
+            return Response(prescription_medicine_serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class DeletePrescribedMedicineView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, id):
+        try:
+            prescribed_medicine = PrescribedMedicine.objects.filter(id=id).first()
+            if prescribed_medicine == None:
+                return Response("Prescribed medicine not found.", status=status.HTTP_200_OK)
+            prescribed_medicine.delete()
+            return Response(status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class FeedbackView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            data = request.data
+            serializer = FeedbackSerializer(data=data)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def put(self, request):
+        try:
+            data = request.data
+            id = data.get("id")
+            feedback = Feedback.objects.filter(pk = id).first()
+            if feedback == None:
+                return Response("Feedback not found.", status=status.HTTP_400_BAD_REQUEST)
+            serializer = FeedbackSerializer(feedback, data=data, partial=True)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# Feedback will never be searched by its id, iT will be searched based on Doctor_id, Consultation_id etc.
+# So we will pass 2 parameters as query param with request URL - 
+# 1. "type" - like "CONSULTATION" if we want to search for consultation id
+# 2. "reference_id" - the actual consultation id value like 1 if we want to seach for all feedbacks for consultation_id 1. 
+class GetFeedbackByReferenceId(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            reference_id = request.query_params.get('reference_id')
+            type = request.query_params.get('type')
+            type_val = None
+            # Method to get value of EnumChoiceFields to use in model objects.Simple text value will thorw error.
+            for t in FeedbackTypes:
+                if FeedbackTypes[type] == t:
+                    type_val = t
+            feedbacks = Feedback.objects.filter(type=type_val, reference_id=reference_id)
+            serializer = FeedbackSerializer(feedbacks, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class DeleteFeedback(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, id):
+        try:
+            feedback = Feedback.objects.filter(pk=id).first()
+            if feedback == None:
+                return Response("Feedback not found.", status=status.HTTP_400_BAD_REQUEST)
+            feedback.delete()
+            return Response(status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class CommunicationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            data = request.data
+            from_user = data.get('from_user') if 'from_user' in data else None
+            communication_id = data.get('communication_id') if 'communication_type' in data and data.get('communication_type') != (None or '' or 0) else None
+            if communication_id == None:
+                # It means new communication is initiated.So we must have communication_type and from_user information and optional to_user.
+                # to_user is optional as in case of HELP_SUPPORT, COMPLAINT and MEDICINE_PURCHASE_RELATED communications to_user will be added later.
+                to_user = data.get('to_user') if 'to_user' in data else None
+                communication_type = data.get('communication_type') if 'communication_type' in data else CommunicationTypes.GENERAL                
+                if communication_type == CommunicationTypes.GENERAL and to_user == None:
+                    return Response("to_user information is required", status=status.HTTP_400_BAD_REQUEST)
+                
+                reference_type = data.get('reference_type') if 'reference_type' in data else CommmunicationReferenceTypes.NONE
+                reference_id = data.get('reference_id') if 'reference_id' in data else None
+                communication_data = {'from_user': from_user, 'to_user': to_user, 'communication_type': communication_type, 'reference_type': reference_type, 'reference_id': reference_id}
+                communication_serializer = CommunicationSerializer(data=communication_data)
+                if not communication_serializer.is_valid():
+                    raise Exception(generate_serializer_error(communication_serializer.errors))
+                communication_serializer.save()
+                communication_id = communication_serializer.data.get("id")
+            # Following code is now common for new communication as well as new message in some existing communication 
+            documents = request.FILES.getlist('files', None)
+            message_data = {"communication": communication_id, "text": data.get("text"), "from_user": from_user}
+            serializer = CommunicationMessageSerializer(data=message_data, context={'documents': documents},)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         except (AssertionError, Exception) as err:
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:

@@ -1,14 +1,10 @@
 from datetime import datetime, timedelta
-import secrets
-from django.conf import settings
-from django.core.mail.message import EmailMessage
 from django.http.response import HttpResponse
-from django.template.loader import render_to_string
 from rest_framework.response import Response
 from rest_framework import status
-from auth_app.models import TokenType, User, VerificationToken
+from auth_app.models import User, VerificationToken
 from utils.common_methods import generate_serializer_error
-from .serializers import RegistrationSerializer, LoginSerializer, VerificationTokenSerializer
+from .serializers import RegistrationSerializer, LoginSerializer
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
