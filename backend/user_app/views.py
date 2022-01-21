@@ -13,13 +13,13 @@ from doctor_app.serializers import ConsultationSlotSerializer
 from hospital_app.models import AppointmentStatus
 from utils.email import update_user_email
 from user_app.serializers import AppointmentSerializer, CommunicationMessageSerializer, CommunicationSerializer, FeedbackSerializer, HealthRecordsSerializer, PrescribedMedicineSerializer, PrescriptionSerializer, SubscriptionSchemesSerializer, UserDetailsSerializer, UserSubscriptionSerializer
-from user_app.models import Appointment, CommmunicationReferenceTypes, CommunicationTypes, Feedback, FeedbackTypes, HealthRecord, HealthRecordTypes, PrescribedMedicine, Prescription, PrescriptionDocument, SubscriptionScheme, UserDetail, UserSubscription
+from user_app.models import Appointment, CommmunicationReferenceTypes, Communication, CommunicationMessage, CommunicationTypes, Feedback, FeedbackTypes, HealthRecord, HealthRecordTypes, PrescribedMedicine, Prescription, PrescriptionDocument, SubscriptionScheme, UserDetail, UserSubscription
 from utils.common_methods import generate_serializer_error
 import pytz
 from rest_framework.parsers import MultiPartParser, FormParser
+from django.db.models import Q
+
 # Create your views here.
-
-
 class UserDetailsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -775,24 +775,82 @@ class CommunicationView(APIView):
         try:
             data = request.data
             from_user = data.get('from_user') if 'from_user' in data else None
-            communication_id = data.get('communication_id') if 'communication_type' in data and data.get('communication_type') != (None or '' or 0) else None
-            if communication_id == None:
-                # It means new communication is initiated.So we must have communication_type and from_user information and optional to_user.
-                # to_user is optional as in case of HELP_SUPPORT, COMPLAINT and MEDICINE_PURCHASE_RELATED communications to_user will be added later.
-                to_user = data.get('to_user') if 'to_user' in data else None
-                communication_type = data.get('communication_type') if 'communication_type' in data else CommunicationTypes.GENERAL                
-                if communication_type == CommunicationTypes.GENERAL and to_user == None:
-                    return Response("to_user information is required", status=status.HTTP_400_BAD_REQUEST)
-                
-                reference_type = data.get('reference_type') if 'reference_type' in data else CommmunicationReferenceTypes.NONE
-                reference_id = data.get('reference_id') if 'reference_id' in data else None
-                communication_data = {'from_user': from_user, 'to_user': to_user, 'communication_type': communication_type, 'reference_type': reference_type, 'reference_id': reference_id}
-                communication_serializer = CommunicationSerializer(data=communication_data)
-                if not communication_serializer.is_valid():
-                    raise Exception(generate_serializer_error(communication_serializer.errors))
-                communication_serializer.save()
-                communication_id = communication_serializer.data.get("id")
+            # It means new communication is initiated.So we must have communication_type and from_user information and optional to_user.
+            # to_user is optional(except for "GENERAL" CommunicationTypes) as in case of HELP_SUPPORT, COMPLAINT and MEDICINE_PURCHASE_RELATED communications to_user will be added later.
+            to_user = data.get('to_user') if 'to_user' in data and data.get('to_user') != "" else None
+            communication_type = data.get('communication_type') if 'communication_type' in data else CommunicationTypes.GENERAL                
+            if communication_type == CommunicationTypes.GENERAL and to_user == None:
+                return Response("to_user information is required", status=status.HTTP_400_BAD_REQUEST)
+            
+            reference_type = data.get('reference_type') if 'reference_type' in data else CommmunicationReferenceTypes.NONE
+            reference_id = data.get('reference_id') if 'reference_id' in data else None
+            communication_data = {'from_user': from_user, 'to_user': to_user, 'communication_type': communication_type, 'reference_type': reference_type, 'reference_id': reference_id}
+            communication_serializer = CommunicationSerializer(data=communication_data)
+            if not communication_serializer.is_valid():
+                raise Exception(generate_serializer_error(communication_serializer.errors))
+            communication_serializer.save()
+            communication_id = communication_serializer.data.get("id")
             # Following code is now common for new communication as well as new message in some existing communication 
+            documents = request.FILES.getlist('files', None)
+            message_data = {"communication": communication_id, "text": data.get("text"), "from_user": from_user}
+            serializer = CommunicationMessageSerializer(data=message_data, context={'documents': documents},)
+            if not serializer.is_valid():
+                raise Exception(generate_serializer_error(serializer.errors))
+            serializer.save()
+            communication = Communication.objects.filter(pk=communication_id).first()
+            communication_serializer = CommunicationSerializer(communication)
+            return Response(communication_serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # We will not create "Update communication" and "Delete communication" API as 
+        # we don't want to provide these features to user. However we are creating Update API just to mark message as read or not. 
+    
+class GetCommunicationDetailsView(APIView):
+    def get(self, request, id):
+        try:
+            communication = Communication.objects.filter(id=id).first()
+            if communication == None:
+                return Response("Communication not found.", status=status.HTTP_400_BAD_REQUEST)
+            serializer = CommunicationSerializer(communication)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetCommunicationByTypeView(APIView):
+    def get(self, request):
+        try:
+            communication_type = request.data.get("communication_type")
+            user_id = request.data.get("user_id")
+            type_val = None
+            # Method to get value of EnumChoiceFields to use in model objects.Simple text value will thorw error.
+            for t in CommunicationTypes:
+                if CommunicationTypes[communication_type] == t:
+                    type_val = t
+            if type_val == None:
+                return Response("Invalid communication type", status=status.HTTP_400_BAD_REQUEST)
+            communication = Communication.objects.filter(Q("communication_type" == type_val), Q("from_user" == user_id) | Q("to_user" == user_id) | Q("communication_shared_with" == user_id), ~Q("communication_muted_for" == user_id) )
+            serializer = CommunicationSerializer(communication, many=True)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class CommunicationMessageView(APIView):
+    def post(self, request):
+        try:
+            data = request.data
+            from_user = data.get('from_user') if 'from_user' in data else None
+            communication_id = data.get('communication_id') if 'communication_id' in data and data.get('communication_id') != (None or '' or 0) else None
+            if from_user == None:
+                return Response("from_user is required", status=status.HTTP_400_BAD_REQUEST)
+            if communication_id == None:
+                return Response("communication_id is required", status=status.HTTP_400_BAD_REQUEST)
             documents = request.FILES.getlist('files', None)
             message_data = {"communication": communication_id, "text": data.get("text"), "from_user": from_user}
             serializer = CommunicationMessageSerializer(data=message_data, context={'documents': documents},)
@@ -804,3 +862,18 @@ class CommunicationView(APIView):
             return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
         except:
             return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def put(self, request):
+        try:
+            data = request.data
+            communication_id = data.get('communication_id') if 'communication_id' in data and data.get('communication_id') != (None or '' or 0) else None
+            last_message_time = data.get('last_message_time') if 'last_message_time' in data and data.get('last_message_time') != (None or '' or 0) else None
+            if communication_id == None:
+                return Response("communication_id is required", status=status.HTTP_400_BAD_REQUEST)
+            CommunicationMessage.objects.filter(communication_id = communication_id ,created_at__lte=last_message_time).update(is_read=True)
+            return Response(status=status.HTTP_200_OK)
+        except (AssertionError, Exception) as err:
+            return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+        except:
+            return Response("Some error occured, please try again.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    

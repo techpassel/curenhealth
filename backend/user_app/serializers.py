@@ -1,3 +1,4 @@
+from pyexpat import model
 from django.db.models import fields
 from rest_framework import serializers
 from enumchoicefield import EnumChoiceField
@@ -86,10 +87,6 @@ class FeedbackSerializer(serializers.ModelSerializer):
         model = Feedback
         fields = '__all__'
 
-class CommunicationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Communication
-        fields = '__all__'    
 
 class CommunicationMessageDocumentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -110,4 +107,21 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
         
     class Meta:
         model = CommunicationMessage
-        fields = ['id', 'communication', 'text', 'from_user', 'documents']
+        fields = ['id', 'communication', 'text', 'is_read', 'from_user', 'documents', 'created_at', 'updated_at']
+
+class BriefCommunicationMessageSeriaizer(serializers.ModelSerializer):
+    class Meta:
+        model = CommunicationMessage
+        fields = ['id', 'text', 'is_read', 'from_user', 'created_at', 'updated_at']
+
+class CommunicationSerializer(serializers.ModelSerializer):
+    # messages = BriefCommunicationMessageSeriaizer(source="message_communication", many=True, read_only=True)
+    latest_message = serializers.SerializerMethodField()
+    class Meta:
+        model = Communication
+        fields = ['id', 'from_user', 'to_user', 'communication_type', 'reference_type', 'reference_id', 'latest_message']    
+
+    def get_latest_message(self, obj):
+        message = CommunicationMessage.objects.filter(communication=obj.id).last()
+        serializer = BriefCommunicationMessageSeriaizer(message)
+        return serializer.data;

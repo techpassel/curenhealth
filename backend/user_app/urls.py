@@ -33,7 +33,10 @@ urlpatterns = [
     path('feedback/', views.FeedbackView.as_view()),
     path('feedback-by-reference/', views.GetFeedbackByReferenceId.as_view()),
     path('delete-feedback/<int:id>', views.DeleteFeedback.as_view()),
-    path('communication/', views.CommunicationView.as_view())
+    path('communication/', views.CommunicationView.as_view()),
+    path('communication/<int:id>', views.GetCommunicationDetailsView.as_view()),
+    path('communication-by-type/', views.GetCommunicationByTypeView.as_view()),
+    path('communication-message/', views.CommunicationMessageView.as_view())
 ]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

@@ -152,14 +152,14 @@ class CommunicationMute(TimeStampMixin):
 
 class CommunicationShare(TimeStampMixin):
     communication = models.ForeignKey(Communication, on_delete=models.CASCADE)
-    shared_with = models.ForeignKey(User, on_delete=models.CASCADE, related_name="communication_share_with")
-    shared_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="communication_share_by")
+    shared_with = models.ForeignKey(User, on_delete=models.CASCADE, related_name="communication_shared_with")
+    shared_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="communication_shared_by")
     
 class CommunicationMessage(TimeStampMixin):
-    communication = models.ForeignKey(Communication, on_delete=models.CASCADE, related_name="message_for_communication")
+    communication = models.ForeignKey(Communication, on_delete=models.CASCADE, related_name="message_communication")
     text = models.TextField()
     from_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    
+    is_read = models.BooleanField(default=False)
     # We don't need to delete CommunicationMessageDocument as models.CASCADE is applied in it for CommunicationMessage
     # i.e whenever we will delete CommunicationMessage from database CommunicationMessageDocument will automatically be deleted from database
     # But in that case delete method of CommunicationMessageDocument won't be called and hence uploaded documents 

@@ -75,3 +75,4 @@ djangoenv/
 .python-version
 
 **/migrations/
+**/uploads/
